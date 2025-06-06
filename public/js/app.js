@@ -12,11 +12,11 @@ const messageContainer = document.getElementById('messageContainer');
 // API Endpoints
 const API_BASE_URL = window.location.origin;
 const ENDPOINTS = {
-    UPLOAD: `${API_BASE_URL}/api/files/upload`,
-    FILES: `${API_BASE_URL}/api/files/access`,
-    DOWNLOAD: `${API_BASE_URL}/api/files`,
-    DELETE: `${API_BASE_URL}/api/files`,
-    SAVE: `${API_BASE_URL}/api/files/save`
+    UPLOAD: `${API_BASE_URL}/api/upload`,
+    FILES: `${API_BASE_URL}/api/files/user`,
+    DOWNLOAD: `${API_BASE_URL}/api/download`,
+    DELETE: `${API_BASE_URL}/api/delete`,
+    SAVE: `${API_BASE_URL}/api/save`
 };
 
 // Current access code state
