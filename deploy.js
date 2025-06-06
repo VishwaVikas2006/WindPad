@@ -143,6 +143,8 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
             return res.status(400).json({ message: 'No file uploaded' });
         }
 
+        console.log('req.file after upload:', req.file); // Debugging line
+
         if (!req.body.userId) {
             return res.status(400).json({ message: 'User ID is required' });
         }
