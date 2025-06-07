@@ -32,7 +32,7 @@ app.use(nocache);
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir);
+    fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
 // Custom Multer GridFS Storage Engine
@@ -253,7 +253,13 @@ connectDB().then(() => {
         content: String,
         isLocked: { type: Boolean, default: false },
         padLockCode: String,
-        files: [{ name: String, path: String }]
+        files: [{
+            name: String,
+            originalName: String,
+            path: String,
+            size: Number,
+            uploadDate: { type: Date, default: Date.now }
+        }]
     });
 
     const Note = mongoose.model('Note', noteSchema);
@@ -268,13 +274,17 @@ connectDB().then(() => {
             if (note) {
                 note.content = content;
                 note.isLocked = isLocked;
-                note.padLockCode = padLockCode;
+                if (isLocked) {
+                    note.padLockCode = padLockCode;
+                } else {
+                    note.padLockCode = undefined;
+                }
             } else {
                 note = new Note({
                     accessCode,
                     content,
                     isLocked,
-                    padLockCode
+                    padLockCode: isLocked ? padLockCode : undefined
                 });
             }
             
@@ -306,23 +316,40 @@ connectDB().then(() => {
             }
 
             const { accessCode } = req.body;
-            const fileName = req.file.filename;
-            const filePath = req.file.path;
+            if (!accessCode) {
+                return res.status(400).json({ error: 'Access code is required' });
+            }
 
             let note = await Note.findOne({ accessCode });
             if (!note) {
                 note = new Note({ accessCode });
             }
 
-            note.files.push({
-                name: fileName,
-                path: filePath
-            });
+            const fileInfo = {
+                name: req.file.filename,
+                originalName: req.file.originalname,
+                path: req.file.path,
+                size: req.file.size
+            };
 
+            note.files.push(fileInfo);
             await note.save();
-            res.json({ success: true, fileName });
+
+            res.json({ 
+                success: true, 
+                file: {
+                    name: fileInfo.name,
+                    originalName: fileInfo.originalName
+                }
+            });
         } catch (error) {
             console.error('Error uploading file:', error);
+            // Clean up the uploaded file if there was an error
+            if (req.file) {
+                fs.unlink(req.file.path, (err) => {
+                    if (err) console.error('Error deleting file:', err);
+                });
+            }
             res.status(500).json({ error: 'Failed to upload file' });
         }
     });
@@ -333,11 +360,28 @@ connectDB().then(() => {
             if (!note || !note.files) {
                 return res.json([]);
             }
-            res.json(note.files);
+            
+            // Only send necessary file information
+            const files = note.files.map(file => ({
+                name: file.name,
+                originalName: file.originalName,
+                uploadDate: file.uploadDate
+            }));
+            
+            res.json(files);
         } catch (error) {
             console.error('Error loading files:', error);
             res.status(500).json({ error: 'Failed to load files' });
         }
+    });
+
+    // Health check endpoint
+    app.get('/health', (req, res) => {
+        res.json({ 
+            status: 'ok', 
+            mongodb: mongoose.connection.readyState === 1,
+            uploads: fs.existsSync(uploadsDir)
+        });
     });
 
     // Start server after all setup

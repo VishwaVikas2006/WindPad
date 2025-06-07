@@ -191,6 +191,7 @@
             background: #4caf50;
             color: white;
             display: none;
+            z-index: 9999;
         }
 
         /* Pad Lock Styles */
@@ -199,6 +200,9 @@
             padding: 15px;
             background: rgba(26, 115, 232, 0.1);
             border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
         }
 
         .pad-lock-toggle {
@@ -263,17 +267,18 @@
         }
 
         .pad-lock-input {
-            margin-top: 10px;
+            display: none;
             padding: 10px;
             background: rgba(26, 115, 232, 0.05);
             border-radius: 6px;
-            display: none;
+            flex-grow: 1;
         }
 
         .pad-lock-hint {
             color: #1a73e8;
             font-style: italic;
             font-size: 0.9em;
+            margin-top: 5px;
         }
 
         .locked-overlay {
@@ -295,6 +300,9 @@
             padding: 30px;
             text-align: center;
             color: white;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
         }
 
         .encrypted-background {
@@ -343,7 +351,7 @@
                 </div>
                 <div id="padLockInput" class="pad-lock-input">
                     <input type="password" id="padLockCode" placeholder="Enter pad lock code">
-                    <small class="pad-lock-hint">Lock this Coded Pad™ by encrypting its notes with a second code.</small>
+                    <div class="pad-lock-hint">Lock this note with a second code for extra security</div>
                 </div>
             </div>
             <div class="button-group">
@@ -356,7 +364,6 @@
         <div class="editor-content">
             <textarea id="note-content" placeholder="Start typing your notes here..."></textarea>
             <div class="file-upload">
-                <input type="file" id="file-input" accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.jpg,.jpeg,.png" style="display: none">
                 <button class="btn" id="upload-btn">Upload Files</button>
                 <p class="note">Supported files: PDF, DOC, PPT, Images (Max size: 10MB)</p>
             </div>
