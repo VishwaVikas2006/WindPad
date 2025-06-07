@@ -29,19 +29,19 @@ app.use(nocache);
 // Custom Multer GridFS Storage Engine
 class GridFsStorageEngine {
     constructor(options) {
-        this.db = options.db;
+        this.connection = options.connection;
         this.bucketName = options.bucketName || 'uploads';
         this.options = options;
     }
 
     _handleFile(req, file, cb) {
-        console.log('Inside _handleFile. Database connection state (this.db.readyState):', this.db.readyState);
-        if (this.db.readyState !== 1) {
-            console.error('Database not connected when _handleFile called. ReadyState:', this.db.readyState);
-            return cb(new Error('Database not connected. ReadyState: ' + this.db.readyState));
+        console.log('Inside _handleFile. Database connection state (this.connection.readyState):', this.connection.readyState);
+        if (this.connection.readyState !== 1) {
+            console.error('Database not connected when _handleFile called. ReadyState:', this.connection.readyState);
+            return cb(new Error('Database not connected. ReadyState: ' + this.connection.readyState));
         }
 
-        const bucket = new GridFSBucket(this.db, { bucketName: this.bucketName });
+        const bucket = new GridFSBucket(this.connection.db, { bucketName: this.bucketName });
         let uploadStream;
         try {
             uploadStream = bucket.openUploadStream(file.originalname, {
@@ -101,7 +101,7 @@ class GridFsStorageEngine {
     }
 
     _removeFile(req, file, cb) {
-        const bucket = new GridFSBucket(this.db, { bucketName: this.bucketName });
+        const bucket = new GridFSBucket(this.connection.db, { bucketName: this.bucketName });
         bucket.delete(new mongoose.Types.ObjectId(file.id), (err) => {
             if (err) {
                 return cb(err);
@@ -128,7 +128,7 @@ connectDB().then(() => {
 
     // Initialize our custom GridFS storage
     const customGridFsStorage = new GridFsStorageEngine({
-        db: mongoose.connection.db,
+        connection: mongoose.connection,
         bucketName: 'uploads',
         fileFilter: (req, file, cb) => {
             if (!ALLOWED_FILE_TYPES.includes(file.mimetype)) {
