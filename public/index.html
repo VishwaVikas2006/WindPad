@@ -56,25 +56,35 @@
           <button onclick="logout()" class="secondary-button">Logout</button>
         </div>
 
-        <div class="file-upload-section">
-          <h3>Upload Files</h3>
-          <div class="upload-container">
-            <div class="upload-area" id="dropZone">
-              <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.txt,image/*" multiple>
-              <div class="upload-prompt">
-                <span class="icon">📤</span>
-                <p>Drag & drop files here or click to browse</p>
-                <span class="file-limits">Supports PDFs, DOCs, and images up to 10MB</span>
+        <div class="content-sections">
+          <div class="text-input-section card">
+            <h3>Type Your Notes</h3>
+            <div class="input-group">
+              <textarea id="textInput" placeholder="Start typing your note here..."></textarea>
+              <button id="saveTextButton" class="primary-button">Save Note</button>
+            </div>
+          </div>
+
+          <div class="file-upload-section card">
+            <h3>Upload Files</h3>
+            <div class="upload-container">
+              <div class="upload-area" id="dropZone">
+                <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.txt,image/*" multiple>
+                <div class="upload-prompt">
+                  <span class="icon">📤</span>
+                  <p>Drag & drop files here or click to browse</p>
+                  <span class="file-limits">Supports PDFs, DOCs, and images up to 10MB</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
         <div id="fileList" class="file-list">
-          <!-- Files will be listed here -->
+          <!-- Files and text notes will be listed here -->
           <div class="empty-state hidden">
             <span class="icon">📂</span>
-            <p>No files uploaded yet</p>
+            <p>No files or notes uploaded yet</p>
           </div>
         </div>
       </div>

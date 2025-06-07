@@ -230,6 +230,28 @@ connectDB().then(() => {
 
     const File = mongoose.model('File', fileSchema);
 
+    // Note Schema
+    const noteSchema = new mongoose.Schema({
+        userId: {
+            type: String,
+            required: true
+        },
+        title: {
+            type: String,
+            default: 'Untitled Note'
+        },
+        content: {
+            type: String,
+            required: true
+        },
+        createdAt: {
+            type: Date,
+            default: Date.now
+        }
+    });
+
+    const Note = mongoose.model('Note', noteSchema);
+
     // API Routes
     app.post('/api/upload', upload.single('file'), (err, req, res, next) => {
         if (err) {
@@ -366,7 +388,7 @@ connectDB().then(() => {
                 return res.status(500).json({ message: 'File system not initialized' });
             }
 
-            // Use our custom storage's _removeFile method or directly use GridFSBucket.delete
+            // Use our custom storage's _removeFile method or directly use GridFSBucket
             // Since we have file.id, we can directly delete using GridFSBucket
             await gfs.delete(new mongoose.Types.ObjectId(file.fileId));
             await File.deleteOne({ _id: file._id });
@@ -374,6 +396,98 @@ connectDB().then(() => {
         } catch (error) {
             console.error('Delete error:', error);
             res.status(500).json({ message: 'Error deleting file' });
+        }
+    });
+
+    // New API Route for Saving Notes
+    app.post('/api/note', async (req, res, next) => {
+        try {
+            const { userId, content, title } = req.body;
+
+            if (!userId || !content) {
+                return res.status(400).json({ message: 'User ID and content are required to save a note.' });
+            }
+
+            const newNote = new Note({
+                userId,
+                content,
+                title: title || 'Untitled Note'
+            });
+
+            await newNote.save();
+            res.status(201).json({ message: 'Note saved successfully', noteId: newNote._id });
+
+        } catch (error) {
+            console.error('Error saving note:', error);
+            if (error instanceof mongoose.Error.ValidationError) {
+                return next(error); // Pass Mongoose validation errors to global handler
+            }
+            next(new Error('Failed to save note: ' + error.message)); // General error
+        }
+    });
+
+    // New API Route for Getting Notes by User
+    app.get('/api/notes/user/:userId', async (req, res, next) => {
+        try {
+            const { userId } = req.params;
+            if (!userId) {
+                return res.status(400).json({ message: 'User ID is required to fetch notes.' });
+            }
+            const notes = await Note.find({ userId: userId }).sort({ createdAt: -1 });
+            res.status(200).json(notes);
+        } catch (error) {
+            console.error('Error fetching notes:', error);
+            next(new Error('Failed to fetch notes: ' + error.message));
+        }
+    });
+
+    // New API Route for Getting a Single Note
+    app.get('/api/note/:noteId', async (req, res, next) => {
+        try {
+            const { noteId } = req.params;
+            if (!noteId) {
+                return res.status(400).json({ message: 'Note ID is required.' });
+            }
+            const note = await Note.findById(noteId);
+            if (!note) {
+                return res.status(404).json({ message: 'Note not found.' });
+            }
+            res.status(200).json(note);
+        } catch (error) {
+            console.error('Error fetching single note:', error);
+            next(new Error('Failed to fetch note: ' + error.message));
+        }
+    });
+
+    // New API Route for Deleting a Note
+    app.delete('/api/note/:noteId', async (req, res, next) => {
+        try {
+            const { noteId } = req.params;
+            const { userId } = req.body; // Assuming userId is sent for authorization
+
+            if (!noteId) {
+                return res.status(400).json({ message: 'Note ID is required to delete a note.' });
+            }
+            if (!userId) {
+                return res.status(400).json({ message: 'User ID is required for authorization to delete a note.' });
+            }
+
+            const note = await Note.findById(noteId);
+            if (!note) {
+                return res.status(404).json({ message: 'Note not found.' });
+            }
+
+            // Basic authorization: ensure the note belongs to the user trying to delete it
+            if (note.userId !== userId) {
+                return res.status(403).json({ message: 'Unauthorized: This note does not belong to the provided user ID.' });
+            }
+
+            await Note.findByIdAndDelete(noteId);
+            res.status(200).json({ message: 'Note deleted successfully' });
+
+        } catch (error) {
+            console.error('Error deleting note:', error);
+            next(new Error('Failed to delete note: ' + error.message));
         }
     });
 

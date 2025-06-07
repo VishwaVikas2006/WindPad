@@ -9,6 +9,10 @@ const dropZone = document.getElementById('dropZone');
 const fileList = document.getElementById('fileList');
 const messageContainer = document.getElementById('messageContainer');
 
+// New Text Input Elements
+const textInput = document.getElementById('textInput');
+const saveTextButton = document.getElementById('saveTextButton');
+
 // API Endpoints
 const API_BASE_URL = window.location.origin;
 const ENDPOINTS = {
@@ -16,7 +20,10 @@ const ENDPOINTS = {
     FILES: `${API_BASE_URL}/api/files/user`,
     DOWNLOAD: `${API_BASE_URL}/api/download`,
     DELETE: `${API_BASE_URL}/api/delete`,
-    SAVE: `${API_BASE_URL}/api/save`
+    SAVE: `${API_BASE_URL}/api/save`,
+    SAVE_NOTE: `${API_BASE_URL}/api/note`,
+    NOTES_BY_USER: `${API_BASE_URL}/api/notes/user`,
+    DELETE_NOTE: `${API_BASE_URL}/api/note`
 };
 
 // Current access code state
@@ -41,6 +48,9 @@ document.addEventListener('DOMContentLoaded', () => {
     fileInput.addEventListener('change', handleFileSelect);
     dropZone.addEventListener('dragover', handleDragOver);
     dropZone.addEventListener('drop', handleDrop);
+
+    // New: Text input listener
+    saveTextButton.addEventListener('click', saveText);
 });
 
 // Login handling
@@ -79,43 +89,73 @@ async function loadFiles() {
             return;
         }
 
-        const response = await fetch(`${ENDPOINTS.FILES}/${currentAccessCode}`);
-        const data = await response.json();
+        // Fetch files
+        const filesResponse = await fetch(`${ENDPOINTS.FILES}/${currentAccessCode}`);
+        const filesData = await filesResponse.json();
         
-        if (!response.ok) {
-            throw new Error(data.message || 'Failed to load files');
+        if (!filesResponse.ok) {
+            throw new Error(filesData.message || 'Failed to load files');
+        }
+
+        // Fetch notes
+        const notesResponse = await fetch(`${ENDPOINTS.NOTES_BY_USER}/${currentAccessCode}`);
+        const notesData = await notesResponse.json();
+
+        if (!notesResponse.ok) {
+            throw new Error(notesData.message || 'Failed to load notes');
         }
         
-        displayFiles(data);
+        // Combine and display both
+        const allItems = [...filesData.map(f => ({ ...f, type: 'file' })), ...notesData.map(n => ({ ...n, type: 'note' }))];
+        displayFiles(allItems);
+
     } catch (error) {
-        showMessage('Error loading files: ' + error.message, 'error');
+        showMessage('Error loading content: ' + error.message, 'error');
         console.error('Error:', error);
     }
 }
 
-function displayFiles(files) {
-    if (!files || !files.length) {
+function displayFiles(items) {
+    if (!items || !items.length) {
         fileList.innerHTML = `
             <div class="empty-state">
                 <span class="icon">📂</span>
-                <p>No files uploaded yet</p>
+                <p>No files or notes uploaded yet</p>
             </div>
         `;
         return;
     }
 
-    fileList.innerHTML = files.map(file => `
-        <div class="file-item">
-            <div class="file-info">
-                <span class="filename">${file.filename}</span>
-                <span class="file-size">${formatFileSize(file.size)}</span>
-            </div>
-            <div class="file-actions">
-                <button onclick="downloadFile('${file.fileId}')" class="secondary-button">Download</button>
-                <button onclick="deleteFile('${file.fileId}')" class="secondary-button delete">Delete</button>
-            </div>
-        </div>
-    `).join('');
+    fileList.innerHTML = items.map(item => {
+        if (item.type === 'file') {
+            return `
+                <div class="file-item">
+                    <div class="file-info">
+                        <span class="filename">${item.filename}</span>
+                        <span class="file-size">${formatFileSize(item.size)}</span>
+                    </div>
+                    <div class="file-actions">
+                        <button onclick="downloadFile('${item.fileId}')" class="secondary-button">Download</button>
+                        <button onclick="deleteFile('${item.fileId}')" class="secondary-button delete">Delete</button>
+                    </div>
+                </div>
+            `;
+        } else if (item.type === 'note') {
+            return `
+                <div class="file-item note-item">
+                    <div class="file-info">
+                        <span class="filename">Note: ${item.title || 'Untitled Note'}</span>
+                        <span class="file-size">${item.content.length} characters</span>
+                    </div>
+                    <div class="file-actions">
+                        <button onclick="viewNote('${item._id}')" class="secondary-button">View</button>
+                        <button onclick="deleteNote('${item._id}')" class="secondary-button delete">Delete</button>
+                    </div>
+                </div>
+            `;
+        }
+        return ''; // Should not happen
+    }).join('');
 }
 
 // File upload handling
@@ -301,6 +341,91 @@ async function deleteFile(fileId) {
     } catch (error) {
         showMessage('Failed to delete file: ' + error.message, 'error');
         console.error('Delete error:', error);
+    }
+}
+
+// New: Text note handling
+async function saveText() {
+    const textContent = textInput.value.trim();
+    if (!textContent) {
+        showMessage('Please type some text to save', 'error');
+        return;
+    }
+    if (!currentAccessCode) {
+        showMessage('Please enter an access code first', 'error');
+        return;
+    }
+
+    try {
+        showMessage('Saving note...', 'info');
+        const response = await fetch(ENDPOINTS.SAVE_NOTE, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                userId: currentAccessCode,
+                content: textContent
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || 'Failed to save note');
+        }
+
+        showMessage('Note saved successfully', 'success');
+        textInput.value = ''; // Clear the textarea
+        loadFiles(); // Reload all items
+    } catch (error) {
+        console.error('Save note error details:', error);
+        showMessage('Error saving note: ' + error.message, 'error');
+    }
+}
+
+async function viewNote(noteId) {
+    // For now, just show in alert. Later, we can add a modal.
+    try {
+        const response = await fetch(`${ENDPOINTS.SAVE_NOTE}/${noteId}`);
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || 'Failed to fetch note');
+        }
+        alert(`Note Content:\n\n${data.content}`);
+    } catch (error) {
+        console.error('View note error:', error);
+        showMessage('Error viewing note: ' + error.message, 'error');
+    }
+}
+
+async function deleteNote(noteId) {
+    if (!confirm('Are you sure you want to delete this note?')) {
+        return;
+    }
+
+    try {
+        showMessage('Deleting note...', 'info');
+        const response = await fetch(`${ENDPOINTS.DELETE_NOTE}/${noteId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ userId: currentAccessCode }) // Send userId for authorization
+        });
+
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.message || 'Failed to delete note');
+        }
+
+        showMessage('Note deleted successfully', 'success');
+        loadFiles(); // Reload the list
+    } catch (error) {
+        console.error('Delete note error:', error);
+        showMessage('Error deleting note: ' + error.message, 'error');
     }
 }
 
