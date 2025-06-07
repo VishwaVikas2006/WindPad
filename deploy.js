@@ -336,7 +336,7 @@ connectDB().then(() => {
                 const isLocked = file.isPrivate && (!privateCode || file.privateCode !== privateCode);
                 return {
                     _id: file._id,
-                    filename: isLocked ? 'Private File' : file.filename,
+                    filename: file.filename,
                     fileId: file.fileId,
                     size: file.size,
                     uploadDate: file.uploadDate,
@@ -395,8 +395,11 @@ connectDB().then(() => {
                 return res.status(404).json({ message: 'File not found' });
             }
 
-            if (file.isPrivate && (!privateCode || file.privateCode !== privateCode)) {
-                return res.status(403).json({ message: 'Private access code required' });
+            // Strict private access check
+            if (file.isPrivate) {
+                if (!privateCode || file.privateCode !== privateCode) {
+                    return res.status(403).json({ message: 'Private access code required or invalid code provided' });
+                }
             }
 
             const gfs = getGfs();
@@ -476,50 +479,34 @@ connectDB().then(() => {
     });
 
     // New API Route for Getting Notes by User
-    app.get('/api/notes/user/:userId', async (req, res) => {
+    app.get('/api/notes/user/:userId', async (req, res, next) => {
         try {
             const { userId } = req.params;
             const { privateCode } = req.query;
 
             if (!userId) {
-                return res.status(400).json({ 
-                    success: false,
-                    message: 'User ID is required to fetch notes.' 
-                });
+                return res.status(400).json({ message: 'User ID is required to fetch notes.' });
             }
 
             const notes = await Note.find({ userId: userId }).sort({ createdAt: -1 });
-            
-            if (!notes) {
-                return res.status(200).json({
-                    success: true,
-                    data: []
-                });
-            }
             
             const processedNotes = notes.map(note => {
                 const isLocked = note.isPrivate && (!privateCode || note.privateCode !== privateCode);
                 return {
                     _id: note._id,
                     userId: note.userId,
-                    title: note.title || 'Untitled Note',
-                    content: isLocked ? null : (note.content || ''),
+                    title: note.title,
+                    content: isLocked ? null : note.content,
                     isPrivate: note.isPrivate,
                     isLocked: isLocked,
                     createdAt: note.createdAt
                 };
             });
 
-            res.status(200).json({
-                success: true,
-                data: processedNotes
-            });
+            res.status(200).json(processedNotes);
         } catch (error) {
             console.error('Error fetching notes:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Failed to fetch notes: ' + error.message
-            });
+            next(new Error('Failed to fetch notes: ' + error.message));
         }
     });
 
