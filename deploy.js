@@ -50,7 +50,8 @@ class GridFsStorageEngine {
                     userId: req.body.userId || 'anonymous',
                     originalName: file.originalname,
                     uploadedAt: new Date()
-                }
+                },
+                writeConcern: { w: 'majority' }
             });
             console.log('GridFS upload stream opened successfully. Stream ID:', uploadStream.id);
         } catch (err) {
