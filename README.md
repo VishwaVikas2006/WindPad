@@ -1,14 +1,19 @@
-# File Sharing Application
+# GlobalPad
 
-A simple file sharing application built with Node.js, Express, and MongoDB Atlas for file storage.
+A simple and secure file sharing and note-taking application built with Node.js, Express, and MongoDB Atlas.
 
 ## Features
 
-- User-based file management
-- File upload with 10MB size limit
-- Support for images and PDFs
-- File download and deletion
-- Simple and intuitive UI
+- User-based file and note management
+- Real-time note editing
+- File upload support:
+  - PDF documents
+  - Images (JPG, PNG, GIF)
+  - PowerPoint presentations (PPT, PPTX)
+  - Word documents (DOC, DOCX)
+- 10MB file size limit
+- Simple and modern UI
+- No account required - just use an access code
 
 ## Prerequisites
 
@@ -20,8 +25,8 @@ A simple file sharing application built with Node.js, Express, and MongoDB Atlas
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
-cd file-sharing-app
+git clone https://github.com/VishwaVikas2006/WindPad.git
+cd globalpad
 ```
 
 2. Install dependencies:
@@ -31,7 +36,7 @@ npm install
 
 3. Create a `.env` file in the root directory with your MongoDB connection string:
 ```
-MONGODB_URI=mongodb+srv://Vishwa:Vishwa@cluster0.l82ddp2.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+MONGODB_URI=your_mongodb_connection_string
 PORT=3000
 ```
 
@@ -49,15 +54,23 @@ npm run dev
 
 ## Usage
 
-1. Enter a user ID to access your files
-2. Upload files using the upload section
-3. View, download, or delete your files from the list
-4. Logout when done
+1. Enter an access code to start using GlobalPad
+2. Type notes in the editor
+3. Upload files using the upload section
+4. Use the buttons to:
+   - Save & Close: Save your work and return to home
+   - Save: Save your work and continue editing
+   - Refresh: Clear the editor (with confirmation)
+   - Close: Return to home (with confirmation)
 
 ## File Limitations
 
 - Maximum file size: 10MB
-- Supported file types: Images and PDFs
+- Supported file types:
+  - PDF documents
+  - Images (JPG, PNG, GIF)
+  - PowerPoint presentations (PPT, PPTX)
+  - Word documents (DOC, DOCX)
 
 ## API Endpoints
 

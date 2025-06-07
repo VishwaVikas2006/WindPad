@@ -1,7 +1,7 @@
 {
-  "name": "file-sharing-app",
+  "name": "globalpad",
   "version": "1.0.0",
-  "description": "A simple file sharing application using MongoDB Atlas",
+  "description": "A simple and secure file sharing and note-taking application",
   "main": "deploy.js",
   "engines": {
     "node": ">=14.0.0"

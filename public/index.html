@@ -3,99 +3,305 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FileShare - Secure File Sharing</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <title>GlobalPad - Simple and Secure File Sharing</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: #f5f7fb;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            background-color: #1a73e8;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        .logo span {
+            color: white;
+            font-size: 2rem;
+            font-weight: 600;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            color: #1a2b4e;
+            margin-bottom: 1rem;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: #64748b;
+            margin-bottom: 3rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        .access-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            margin-bottom: 1.5rem;
+        }
+
+        .access-title {
+            font-size: 1.8rem;
+            color: #1a2b4e;
+            margin-bottom: 1rem;
+        }
+
+        .access-subtitle {
+            color: #64748b;
+            margin-bottom: 2rem;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        input {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #1a73e8;
+        }
+
+        .btn {
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn:hover {
+            background-color: #1557b0;
+        }
+
+        .note {
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        /* Editor styles */
+        .editor-container {
+            display: none;
+            width: 100%;
+            max-width: 1000px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            padding: 1.5rem;
+        }
+
+        .status-bar {
+            background-color: #38bdf8;
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .editor-area {
+            width: 100%;
+            min-height: 400px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            resize: vertical;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .upload-section {
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            border: 2px dashed #e2e8f0;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .upload-btn {
+            background-color: #38bdf8;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-bottom: 1rem;
+        }
+
+        .file-info {
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: flex-end;
+            color: #64748b;
+            font-size: 0.9rem;
+            gap: 1rem;
+        }
+    </style>
   </head>
   <body>
-    <div id="homePage" class="page">
-      <div class="container">
-        <div class="brand">
-          <div class="logo">FS</div>
-          <h1>FileShare</h1>
-          <p class="tagline">Simple and secure file sharing</p>
+    <div class="container">
+        <div class="logo">
+            <span>GP</span>
         </div>
+        <h1>GlobalPad</h1>
+        <p class="subtitle">Simple and secure file sharing</p>
 
-        <div class="login-section">
-          <h2>Access Your Files</h2>
-          <p>Enter an access code to manage your files</p>
-          <div class="input-group">
-            <input type="text" id="userIdInput" placeholder="Enter access code" maxlength="50">
-            <button id="loginButton" class="primary-button">Access Files</button>
-          </div>
-          <p class="help-text">Use any code you want. Just remember it to access your files later!</p>
-        </div>
-
-        <div class="features">
-          <div class="feature">
-            <span class="icon">🔒</span>
-            <h3>No Accounts</h3>
-            <p>Just use a code to access your files</p>
-          </div>
-          <div class="feature">
-            <span class="icon">🚀</span>
-            <h3>Easy Sharing</h3>
-            <p>Share your code to share your files</p>
-          </div>
-          <div class="feature">
-            <span class="icon">📱</span>
-            <h3>Access Anywhere</h3>
-            <p>Use your code on any device</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div id="filePage" class="page hidden">
-      <div class="container">
-        <div class="header">
-          <div class="user-info">
-            <h2>Your Files</h2>
-            <div id="userId" class="user-id"></div>
-          </div>
-          <button onclick="logout()" class="secondary-button">Logout</button>
-        </div>
-
-        <div class="content-sections">
-          <div class="text-input-section card">
-            <h3>Type Your Notes</h3>
+        <div id="access-section" class="access-container">
+            <h2 class="access-title">Access Your Files</h2>
+            <p class="access-subtitle">Enter an access code to manage your files</p>
             <div class="input-group">
-              <textarea id="textInput" placeholder="Start typing your note here..."></textarea>
-              <button id="saveTextButton" class="primary-button">Save Note</button>
+                <input type="text" id="access-code" placeholder="Enter access code">
+                <button class="btn" onclick="accessFiles()">Open</button>
             </div>
-          </div>
-
-          <div class="file-upload-section card">
-            <h3>Upload Files</h3>
-            <div class="upload-container">
-              <div class="upload-area" id="dropZone">
-                <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.txt,image/*" multiple>
-                <div class="upload-prompt">
-                  <span class="icon">📤</span>
-                  <p>Drag & drop files here or click to browse</p>
-                  <span class="file-limits">Supports PDFs, DOCs, and images up to 10MB</span>
-                </div>
-              </div>
-            </div>
-          </div>
+            <p class="note">Use any code you want. Just remember it to access your files later!</p>
         </div>
 
-        <div id="fileList" class="file-list">
-          <!-- Files and text notes will be listed here -->
-          <div class="empty-state hidden">
-            <span class="icon">📂</span>
-            <p>No files or notes uploaded yet</p>
-          </div>
+        <div id="editor-section" class="editor-container">
+            <div class="status-bar">
+                Your code is in use
+                <br>
+                After saving use the same code to open your notes again.
+            </div>
+
+            <textarea class="editor-area" id="editor" placeholder="Start typing..."></textarea>
+
+            <div class="upload-section">
+                <input type="file" id="file-input" style="display: none" accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.gif">
+                <button class="upload-btn" onclick="document.getElementById('file-input').click()">Upload File</button>
+                <p class="file-info">Supported files: PDF, Images, PPT, DOC (Max 10MB)</p>
+            </div>
+
+            <div class="button-group">
+                <button class="btn" onclick="saveAndClose()">Save & Close</button>
+                <button class="btn" onclick="saveContent()">Save</button>
+                <button class="btn" onclick="refreshContent()">Refresh</button>
+                <button class="btn" onclick="closeEditor()">Close</button>
+            </div>
+
+            <div class="stats">
+                <span id="viewers">Current Viewers: 5</span>
+                <span id="char-count">36/500000/500000</span>
+            </div>
         </div>
-      </div>
     </div>
 
-    <div id="messageContainer"></div>
+    <script>
+        function accessFiles() {
+            const code = document.getElementById('access-code').value;
+            if (code.trim() === '') {
+                alert('Please enter an access code');
+                return;
+            }
+            document.getElementById('access-section').style.display = 'none';
+            document.getElementById('editor-section').style.display = 'block';
+            // Here you would typically load the user's content
+        }
 
-    <footer>
-      <p>&copy; 2024 FileShare. All rights reserved.</p>
-    </footer>
+        function saveContent() {
+            // Save the content
+            alert('Content saved successfully!');
+        }
 
-    <script src="js/app.js"></script>
+        function saveAndClose() {
+            // Save the content
+            alert('Content saved successfully!');
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        }
+
+        function refreshContent() {
+            // Refresh the content
+            if (confirm('Are you sure you want to refresh? Any unsaved changes will be lost.')) {
+                document.getElementById('editor').value = '';
+            }
+        }
+
+        function closeEditor() {
+            if (confirm('Are you sure you want to close? Any unsaved changes will be lost.')) {
+                window.location.reload();
+            }
+        }
+
+        // File upload handling
+        document.getElementById('file-input').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Check file size (10MB limit)
+            if (file.size > 10 * 1024 * 1024) {
+                alert('File size must be less than 10MB');
+                this.value = '';
+                return;
+            }
+
+            // Check file type
+            const allowedTypes = [
+                'application/pdf',
+                'image/jpeg',
+                'image/png',
+                'image/gif',
+                'application/vnd.ms-powerpoint',
+                'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            ];
+
+            if (!allowedTypes.includes(file.type)) {
+                alert('Invalid file type. Only PDF, Images, PPT, and DOC files are allowed.');
+                this.value = '';
+                return;
+            }
+
+            // Here you would typically upload the file
+            alert('File ready for upload!');
+        });
+    </script>
   </body>
 </html>
