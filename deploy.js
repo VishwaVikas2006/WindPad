@@ -35,15 +35,28 @@ class GridFsStorageEngine {
     }
 
     _handleFile(req, file, cb) {
+        console.log('Inside _handleFile. Database connection state (this.db.readyState):', this.db.readyState);
+        if (this.db.readyState !== 1) {
+            console.error('Database not connected when _handleFile called. ReadyState:', this.db.readyState);
+            return cb(new Error('Database not connected. ReadyState: ' + this.db.readyState));
+        }
+
         const bucket = new GridFSBucket(this.db, { bucketName: this.bucketName });
-        const uploadStream = bucket.openUploadStream(file.originalname, {
-            contentType: file.mimetype,
-            metadata: {
-                userId: req.body.userId || 'anonymous',
-                originalName: file.originalname,
-                uploadedAt: new Date()
-            }
-        });
+        let uploadStream;
+        try {
+            uploadStream = bucket.openUploadStream(file.originalname, {
+                contentType: file.mimetype,
+                metadata: {
+                    userId: req.body.userId || 'anonymous',
+                    originalName: file.originalname,
+                    uploadedAt: new Date()
+                }
+            });
+            console.log('GridFS upload stream opened successfully.', uploadStream.id);
+        } catch (err) {
+            console.error('Error opening GridFS upload stream:', err);
+            return cb(err);
+        }
 
         file.stream.pipe(uploadStream);
 
@@ -71,6 +84,7 @@ class GridFsStorageEngine {
             // The 'uploadedFile' object here is the GridFS file document
             // We need to return the information Multer expects in req.file
             if (!uploadedFile) {
+                console.error('CRITICAL: uploadedFile is undefined/null in finish event for file:', file.originalname);
                 return cb(new Error('File upload to GridFS failed: uploaded file object is undefined or null.'));
             }
             cb(null, {
