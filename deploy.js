@@ -496,6 +496,8 @@ connectDB().then(() => {
 
 }).catch(err => {
     console.error('Failed to connect to database:', err);
+    console.error('Connection string used:', process.env.MONGODB_URI ? process.env.MONGODB_URI.replace(/:[^:/@]+@/, ':****@') : 'Not set');
+    console.error('Current IP:', require('os').networkInterfaces());
     process.exit(1);
 });
 
