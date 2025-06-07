@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GlobalPad - Simple and Secure File Sharing</title>
+    <title>GlobalPad - Simple and secure file sharing</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         * {
@@ -22,164 +22,130 @@
             padding: 2rem;
         }
 
+        .logo-container {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
         .logo {
             width: 80px;
             height: 80px;
             background: #1a73e8;
             border-radius: 50%;
-            display: flex;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 1rem;
-        }
-
-        .logo span {
             color: white;
-            font-size: 2rem;
-            font-weight: 600;
+            font-size: 32px;
+            font-weight: bold;
         }
 
-        h1 {
-            font-size: 2.5rem;
-            color: #1a1a1a;
-            margin-bottom: 0.5rem;
+        .app-title {
+            font-size: 32px;
+            margin: 20px 0 10px;
+            color: #333;
         }
 
-        .subtitle {
+        .app-subtitle {
+            font-size: 18px;
             color: #666;
-            font-size: 1.2rem;
-            margin-bottom: 3rem;
+            margin-bottom: 30px;
         }
 
         .container {
             background: white;
-            padding: 2rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 500px;
-            text-align: center;
-        }
-
-        .access-title {
-            font-size: 1.8rem;
-            color: #1a1a1a;
-            margin-bottom: 1rem;
-        }
-
-        .access-subtitle {
-            color: #666;
-            margin-bottom: 2rem;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
 
         .input-group {
-            margin-bottom: 1.5rem;
+            margin-bottom: 20px;
         }
 
-        input {
+        input[type="text"], textarea {
             width: 100%;
-            padding: 0.8rem 1rem;
-            font-size: 1rem;
-            border: 2px solid #e1e1e1;
-            border-radius: 8px;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        input:focus {
-            border-color: #1a73e8;
-        }
-
-        .btn {
-            background: #1a73e8;
-            color: white;
-            border: none;
-            padding: 0.8rem 2rem;
-            font-size: 1rem;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .btn:hover {
-            background: #1557b0;
-        }
-
-        .note {
-            color: #666;
-            font-size: 0.9rem;
-            margin-top: 1rem;
-        }
-
-        /* Editor styles */
-        .editor-container {
-            display: none;
-            width: 100%;
-            max-width: 800px;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            margin-top: 2rem;
-        }
-
-        .editor-header {
-            padding: 1rem;
-            background: #f8f9fa;
-            border-bottom: 1px solid #e1e1e1;
-            border-radius: 12px 12px 0 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .editor-content {
-            padding: 1rem;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
         }
 
         textarea {
-            width: 100%;
-            min-height: 300px;
-            padding: 1rem;
-            border: 1px solid #e1e1e1;
-            border-radius: 8px;
-            font-size: 1rem;
+            min-height: 200px;
             resize: vertical;
         }
 
-        .file-upload {
-            margin: 1rem 0;
-            padding: 1rem;
-            border: 2px dashed #e1e1e1;
-            border-radius: 8px;
+        .button-container {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            justify-content: center;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 5px;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .save-btn, .refresh-btn, .private-btn, .close-btn {
+            background: #e0e0e0;
+        }
+
+        .save-close-btn {
+            background: #1a73e8;
+            color: white;
+        }
+
+        .upload-section {
+            margin-top: 20px;
+            padding: 20px;
+            border: 2px dashed #ddd;
+            border-radius: 5px;
             text-align: center;
         }
 
+        .file-info {
+            color: #666;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
         .file-list {
-            margin-top: 1rem;
+            margin-top: 20px;
         }
 
         .file-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0.5rem;
-            background: #f8f9fa;
-            border-radius: 4px;
-            margin-bottom: 0.5rem;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 5px;
+            margin-bottom: 10px;
         }
 
-        .button-group {
-            display: flex;
-            gap: 0.5rem;
+        .blurred {
+            filter: blur(5px);
+            user-select: none;
+            pointer-events: none;
         }
 
-        .btn-secondary {
-            background: #e1e1e1;
-            color: #333;
-        }
-
-        .btn-secondary:hover {
-            background: #d1d1d1;
+        .private-indicator {
+            color: #666;
+            font-style: italic;
         }
 
         .status {
@@ -307,58 +273,43 @@
     </style>
   </head>
   <body>
-    <div class="logo">
-        <span>GP</span>
+    <div class="logo-container">
+        <div class="logo">GP</div>
+        <h1 class="app-title">GlobalPad</h1>
+        <p class="app-subtitle">Simple and secure file sharing</p>
     </div>
-    <h1>GlobalPad</h1>
-    <p class="subtitle">Simple and secure file sharing</p>
 
-    <div class="container" id="access-container">
-        <h2 class="access-title">Access Your Notes</h2>
-        <p class="access-subtitle">Enter an access code to manage your notes and files</p>
+    <div class="container">
         <div class="input-group">
-            <input type="text" id="access-code" placeholder="Enter access code">
-            <input type="password" id="private-access-code" placeholder="Enter private code (optional)" style="margin-top: 10px;">
+            <input type="text" id="userInput" placeholder="Enter your access code">
+            <input type="text" id="privateCodeInput" placeholder="Enter private code (optional)">
+            <button id="accessButton">Open</button>
         </div>
-        <button class="btn" id="open-btn">Open</button>
-        <p class="note">Use any code you want. Just remember it to access your notes later!</p>
-    </div>
 
-    <div class="editor-container" id="editor-container">
-        <div class="editor-header">
-            <div class="status-text">Your code is in use</div>
-            <div class="button-group">
-                <button class="btn btn-secondary" id="save-btn">Save</button>
-                <button class="btn btn-secondary" id="refresh-btn">Refresh</button>
-                <button class="btn btn-secondary" id="private-btn">Save as Private</button>
-                <button class="btn" id="save-close-btn">Save & Close</button>
-                <button class="btn btn-secondary" id="close-btn">Close</button>
-            </div>
+        <form id="noteForm">
+            <input type="text" id="noteTitle" placeholder="Note title">
+            <textarea id="noteInput" placeholder="Write your note here..."></textarea>
+            <input type="checkbox" id="saveNoteAsPrivate" style="display: none;">
+        </form>
+
+        <div class="button-container">
+            <button class="save-btn">Save</button>
+            <button class="refresh-btn">Refresh</button>
+            <button class="private-btn">Save as Private</button>
+            <button class="save-close-btn">Save & Close</button>
+            <button class="close-btn">Close</button>
         </div>
-        <div class="editor-content">
-            <div id="private-modal" class="modal" style="display: none;">
-                <div class="modal-content">
-                    <h3>Set Private Access</h3>
-                    <p>Enter a private code to protect your content</p>
-                    <input type="password" id="private-code" placeholder="Enter private code">
-                    <div class="button-group" style="margin-top: 15px;">
-                        <button class="btn" id="confirm-private">Confirm</button>
-                        <button class="btn btn-secondary" id="cancel-private">Cancel</button>
-                    </div>
-                </div>
-            </div>
-            <div id="content-wrapper">
-                <textarea id="note-content" placeholder="Start typing your notes here..."></textarea>
-                <div class="file-upload">
-                    <input type="file" id="file-input" accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.jpg,.jpeg,.png" style="display: none">
-                    <button class="btn" id="upload-btn">Upload Files</button>
-                    <p class="note">Supported files: PDF, DOC, PPT, Images (Max size: 10MB)</p>
-                </div>
-                <div class="file-list" id="file-list">
-                    <!-- Files will be listed here -->
-                </div>
-            </div>
-        </div>
+
+        <div id="notesContainer"></div>
+
+        <form id="fileForm" class="upload-section">
+            <input type="file" id="fileInput" style="display: none;">
+            <button type="button" id="uploadButton" class="upload-btn">Upload Files</button>
+            <input type="checkbox" id="saveAsPrivate" style="display: none;">
+            <p class="file-info">Supported files: PDF, DOC, PPT, Images (Max size: 10MB)</p>
+        </form>
+
+        <div id="filesContainer" class="file-list"></div>
     </div>
 
     <div class="status" id="status-message"></div>
