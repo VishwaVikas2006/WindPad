@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GlobalPad</title>
+    <style>
+        /* Base styles */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        /* Editor styles */
+        .editor-container {
+            margin-top: 20px;
+        }
+
+        .editor-header {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        /* Pad Lock styles */
+        .pad-lock-container {
+            margin: 15px 0;
+            padding: 15px;
+            background: rgba(139, 119, 81, 0.1);
+            border-radius: 8px;
+        }
+
+        .pad-lock-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .pad-lock-icon {
+            font-size: 1.2em;
+            color: #8b7751;
+        }
+
+        .pad-lock-text {
+            color: #8b7751;
+            font-weight: 500;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #8b7751;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .pad-lock-input {
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(139, 119, 81, 0.05);
+            border-radius: 6px;
+            display: none;
+        }
+
+        .pad-lock-input input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #8b7751;
+            border-radius: 4px;
+            margin-bottom: 5px;
+        }
+
+        .pad-lock-hint {
+            color: #8b7751;
+            font-style: italic;
+            font-size: 0.9em;
+        }
+
+        /* Lock screen styles */
+        .locked-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .locked-content {
+            max-width: 500px;
+            padding: 30px;
+            text-align: center;
+            color: white;
+        }
+
+        .locked-content input {
+            width: 100%;
+            padding: 12px;
+            margin: 20px 0;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        .encrypted-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: -1;
+            opacity: 0.1;
+            font-family: monospace;
+            font-size: 12px;
+            overflow: hidden;
+            white-space: pre-wrap;
+            color: #8b7751;
+        }
+
+        /* Button styles */
+        .button-group {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        /* Content area styles */
+        .content-area {
+            margin-top: 20px;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+        }
+
+        /* File list styles */
+        .file-list {
+            margin-top: 20px;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>GlobalPad</h1>
+        
+        <div id="access-container">
+            <input type="text" id="accessCode" placeholder="Enter access code">
+            <button class="btn btn-primary" id="enterBtn">Enter</button>
+        </div>
+
+        <div id="editor-container" style="display: none;">
+            <div class="editor-header">
+                <div class="pad-lock-container">
+                    <div class="pad-lock-toggle">
+                        <span class="pad-lock-icon">🔒</span>
+                        <span class="pad-lock-text">Pad Lock</span>
+                        <label class="switch">
+                            <input type="checkbox" id="padLockToggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div id="padLockInput" class="pad-lock-input">
+                        <input type="password" id="padLockCode" placeholder="Enter pad lock code">
+                        <small class="pad-lock-hint">Lock this Coded Pad™ by encrypting its notes with a second code.</small>
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-secondary" id="saveBtn">Save</button>
+                    <button class="btn btn-secondary" id="refreshBtn">Refresh</button>
+                    <button class="btn btn-primary" id="saveCloseBtn">Save & Close</button>
+                    <button class="btn btn-secondary" id="closeBtn">Close</button>
+                </div>
+            </div>
+
+            <div class="content-area">
+                <textarea id="noteContent" placeholder="Start typing your notes here..."></textarea>
+            </div>
+
+            <div class="file-list" id="fileList">
+                <!-- Files will be listed here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="/script.js"></script>
+</body>
+</html> 

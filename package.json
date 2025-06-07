@@ -1,0 +1,17 @@
+{
+  "name": "windpad",
+  "version": "1.0.0",
+  "description": "A secure note-taking and file-sharing web application",
+  "main": "deploy.js",
+  "scripts": {
+    "start": "node deploy.js",
+    "dev": "nodemon deploy.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^8.0.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+} 
