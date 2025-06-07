@@ -321,14 +321,23 @@ connectDB().then(() => {
                     { userId: userId },
                     { 'savedBy.userId': userId }
                 ]
-            })
-            .select('filename fileId size uploadDate contentType userId savedBy isPrivate')
-            .lean();
+            });
 
-            const processedFiles = files.map(file => ({
-                ...file,
-                isLocked: file.isPrivate && (!privateCode || file.privateCode !== privateCode)
-            }));
+            const processedFiles = files.map(file => {
+                const isLocked = file.isPrivate && (!privateCode || file.privateCode !== privateCode);
+                return {
+                    _id: file._id,
+                    filename: file.filename,
+                    fileId: file.fileId,
+                    size: file.size,
+                    uploadDate: file.uploadDate,
+                    contentType: file.contentType,
+                    userId: file.userId,
+                    isPrivate: file.isPrivate,
+                    isLocked: isLocked,
+                    savedBy: file.savedBy
+                };
+            });
 
             res.json(processedFiles || []);
         } catch (error) {
@@ -377,8 +386,11 @@ connectDB().then(() => {
                 return res.status(404).json({ message: 'File not found' });
             }
 
-            if (file.isPrivate && (!privateCode || file.privateCode !== privateCode)) {
-                return res.status(403).json({ message: 'Private access code required' });
+            // Strict private access check
+            if (file.isPrivate) {
+                if (!privateCode || file.privateCode !== privateCode) {
+                    return res.status(403).json({ message: 'Private access code required or invalid code provided' });
+                }
             }
 
             const gfs = getGfs();
@@ -398,14 +410,20 @@ connectDB().then(() => {
 
     app.delete('/api/delete/:fileId', async (req, res) => {
         try {
+            const { privateCode } = req.body;
             const file = await File.findOne({ fileId: new mongoose.Types.ObjectId(req.params.fileId) });
+            
             if (!file) {
                 return res.status(404).json({ message: 'File not found' });
             }
 
-            // Only allow file owner to delete
+            // Only allow file owner to delete and check private access
             if (file.userId !== req.body.userId) {
                 return res.status(403).json({ message: 'Not authorized to delete this file' });
+            }
+
+            if (file.isPrivate && (!privateCode || file.privateCode !== privateCode)) {
+                return res.status(403).json({ message: 'Private access code required to delete this file' });
             }
 
             const gfs = getGfs();
@@ -413,8 +431,6 @@ connectDB().then(() => {
                 return res.status(500).json({ message: 'File system not initialized' });
             }
 
-            // Use our custom storage's _removeFile method or directly use GridFSBucket
-            // Since we have file.id, we can directly delete using GridFSBucket
             await gfs.delete(new mongoose.Types.ObjectId(file.fileId));
             await File.deleteOne({ _id: file._id });
             res.json({ message: 'File deleted successfully' });
@@ -465,11 +481,18 @@ connectDB().then(() => {
 
             const notes = await Note.find({ userId: userId }).sort({ createdAt: -1 });
             
-            const processedNotes = notes.map(note => ({
-                ...note.toObject(),
-                content: note.isPrivate && (!privateCode || note.privateCode !== privateCode) ? null : note.content,
-                isLocked: note.isPrivate && (!privateCode || note.privateCode !== privateCode)
-            }));
+            const processedNotes = notes.map(note => {
+                const isLocked = note.isPrivate && (!privateCode || note.privateCode !== privateCode);
+                return {
+                    _id: note._id,
+                    userId: note.userId,
+                    title: note.title,
+                    content: isLocked ? null : note.content,
+                    isPrivate: note.isPrivate,
+                    isLocked: isLocked,
+                    createdAt: note.createdAt
+                };
+            });
 
             res.status(200).json(processedNotes);
         } catch (error) {
