@@ -94,6 +94,16 @@ class GridFsStorageEngine {
                         console.log('Found file in fs.files collection after finish, but it was undefined in event:', files[0]);
                     } else {
                         console.log('File not found in fs.files collection after finish event, and it was undefined.');
+                        // Also check fs.chunks collection
+                        this.connection.db.collection('uploads.chunks').find({ files_id: uploadStream.id }).toArray((chunkErr, chunks) => {
+                            if (chunkErr) {
+                                console.error('Error trying to find chunks by files_id after failed upload:', chunkErr);
+                            } else if (chunks && chunks.length > 0) {
+                                console.log(`Found ${chunks.length} chunks for file ID ${uploadStream.id} in uploads.chunks collection.`);
+                            } else {
+                                console.log(`No chunks found for file ID ${uploadStream.id} in uploads.chunks collection.`);
+                            }
+                        });
                     }
                 });
                 return cb(new Error('File upload to GridFS failed: uploaded file object is undefined or null.'));
