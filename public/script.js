@@ -413,6 +413,9 @@ function showStatus(message, isError = false) {
     statusMessage.textContent = message;
     statusMessage.style.display = 'block';
     statusMessage.style.background = isError ? '#f44336' : '#4caf50';
+    statusMessage.style.color = 'white';
+    statusMessage.style.padding = '1rem';
+    statusMessage.style.borderRadius = '4px';
     setTimeout(() => {
         statusMessage.style.display = 'none';
     }, 3000);

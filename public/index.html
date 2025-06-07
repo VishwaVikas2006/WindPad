@@ -31,11 +31,8 @@
             align-items: center;
             justify-content: center;
             margin-bottom: 1rem;
-        }
-
-        .logo span {
-            color: white;
             font-size: 2rem;
+            color: white;
             font-weight: 600;
         }
 
@@ -99,11 +96,18 @@
             font-size: 1rem;
             border-radius: 8px;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
         }
 
         .btn:hover {
             background: #1557b0;
+            transform: translateY(-1px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
         }
 
         .btn-secondary {
@@ -139,6 +143,8 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
         }
 
         .editor-content {
@@ -153,6 +159,12 @@
             border-radius: 8px;
             font-size: 1rem;
             resize: vertical;
+            line-height: 1.5;
+        }
+
+        textarea:focus {
+            border-color: #1a73e8;
+            outline: none;
         }
 
         .file-upload {
@@ -161,6 +173,12 @@
             border: 2px dashed #e1e1e1;
             border-radius: 8px;
             text-align: center;
+            transition: all 0.2s;
+        }
+
+        .file-upload:hover {
+            border-color: #1a73e8;
+            background: rgba(26, 115, 232, 0.05);
         }
 
         .file-list {
@@ -171,15 +189,21 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0.5rem;
+            padding: 1rem;
             background: #f8f9fa;
-            border-radius: 4px;
+            border-radius: 8px;
             margin-bottom: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .file-item:hover {
+            background: #f0f0f0;
         }
 
         .button-group {
             display: flex;
             gap: 0.5rem;
+            flex-wrap: wrap;
         }
 
         .status {
@@ -192,6 +216,7 @@
             color: white;
             display: none;
             z-index: 9999;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
         /* Pad Lock Styles */
@@ -203,12 +228,14 @@
             display: flex;
             align-items: center;
             gap: 15px;
+            flex-wrap: wrap;
         }
 
         .pad-lock-toggle {
             display: flex;
             align-items: center;
             gap: 10px;
+            min-width: 200px;
         }
 
         .pad-lock-icon {
@@ -226,6 +253,7 @@
             display: inline-block;
             width: 60px;
             height: 34px;
+            flex-shrink: 0;
         }
 
         .switch input {
@@ -272,6 +300,7 @@
             background: rgba(26, 115, 232, 0.05);
             border-radius: 6px;
             flex-grow: 1;
+            min-width: 250px;
         }
 
         .pad-lock-hint {
@@ -319,12 +348,26 @@
             white-space: pre-wrap;
             color: #1a73e8;
         }
+
+        @media (max-width: 600px) {
+            .editor-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .button-group {
+                justify-content: stretch;
+            }
+
+            .btn {
+                flex: 1;
+                text-align: center;
+            }
+        }
     </style>
   </head>
   <body>
-    <div class="logo">
-        <span>GP</span>
-    </div>
+    <div class="logo">GP</div>
     <h1>GlobalPad</h1>
     <p class="subtitle">Simple and secure file sharing</p>
 
@@ -332,7 +375,7 @@
         <h2 class="access-title">Access Your Notes</h2>
         <p class="access-subtitle">Enter an access code to manage your notes and files</p>
         <div class="input-group">
-            <input type="text" id="access-code" placeholder="Enter access code">
+            <input type="text" id="access-code" placeholder="Enter access code" autofocus>
         </div>
         <button class="btn" id="open-btn">Open</button>
         <p class="note">Use any code you want. Just remember it to access your notes later!</p>
