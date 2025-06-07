@@ -1,7 +1,7 @@
 {
   "name": "globalpad",
   "version": "1.0.0",
-  "description": "A simple and secure file sharing and note-taking application",
+  "description": "A simple note-taking and file sharing application",
   "main": "deploy.js",
   "engines": {
     "node": ">=14.0.0"

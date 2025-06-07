@@ -1,17 +1,18 @@
 # GlobalPad
 
-A simple and secure file sharing and note-taking application built with Node.js, Express, and MongoDB Atlas.
+A simple note-taking and file sharing application built with Node.js, Express, and MongoDB Atlas.
 
 ## Features
 
-- User-based file and note management
-- Real-time note editing
-- File upload support:
+- User-based note management and file sharing
+- Real-time note saving and editing
+- File upload support (up to 10MB)
   - PDF documents
-  - Images (JPG, PNG, GIF)
-  - PowerPoint presentations (PPT, PPTX)
-  - Word documents (DOC, DOCX)
-- 10MB file size limit
+  - Microsoft Word documents (.doc, .docx)
+  - PowerPoint presentations (.ppt, .pptx)
+  - Images (jpg, png)
+  - Text files
+- File management (download, delete)
 - Simple and modern UI
 - No account required - just use an access code
 
@@ -36,7 +37,7 @@ npm install
 
 3. Create a `.env` file in the root directory with your MongoDB connection string:
 ```
-MONGODB_URI=your_mongodb_connection_string
+MONGODB_URI=mongodb+srv://vishwavikas4444:Vishwa@cluster0.lrhrsuf.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
 PORT=3000
 ```
 
@@ -55,29 +56,20 @@ npm run dev
 ## Usage
 
 1. Enter an access code to start using GlobalPad
-2. Type notes in the editor
-3. Upload files using the upload section
-4. Use the buttons to:
-   - Save & Close: Save your work and return to home
-   - Save: Save your work and continue editing
-   - Refresh: Clear the editor (with confirmation)
-   - Close: Return to home (with confirmation)
-
-## File Limitations
-
-- Maximum file size: 10MB
-- Supported file types:
-  - PDF documents
-  - Images (JPG, PNG, GIF)
-  - PowerPoint presentations (PPT, PPTX)
-  - Word documents (DOC, DOCX)
+2. Write and save notes in the text editor
+3. Upload files (max 10MB) using the upload button
+4. View, download, or delete your files from the list
+5. Use Save & Close or Close to return to the home page
+6. Use the same access code to access your notes and files later
 
 ## API Endpoints
 
-- `POST /api/files/upload` - Upload a file
-- `GET /api/files/:fileId` - Download a file
-- `DELETE /api/files/:fileId` - Delete a file
+- `POST /api/note` - Save a note
+- `GET /api/notes/user/:userId` - Get notes for a user
+- `POST /api/upload` - Upload a file
 - `GET /api/files/user/:userId` - Get all files for a user
+- `GET /api/download/:fileId` - Download a file
+- `DELETE /api/delete/:fileId` - Delete a file
 
 ## License
 
