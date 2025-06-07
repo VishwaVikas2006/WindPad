@@ -6,11 +6,40 @@ function clearContent() {
     document.getElementById('filesContainer').innerHTML = '';
     document.getElementById('noteInput').value = '';
     document.getElementById('noteTitle').value = '';
+    document.getElementById('noteInput').disabled = false;
+    document.getElementById('noteTitle').disabled = false;
+    document.getElementById('noteInput').classList.remove('blurred');
+    document.getElementById('noteTitle').classList.remove('blurred');
 }
 
 function displayNotes(notes) {
     const container = document.getElementById('notesContainer');
     container.innerHTML = '';
+    
+    // First, handle the input fields if there are private notes
+    const hasPrivateNotes = notes.some(note => note.isPrivate);
+    const noteInput = document.getElementById('noteInput');
+    const noteTitle = document.getElementById('noteTitle');
+    
+    if (hasPrivateNotes && !currentPrivateCode) {
+        noteInput.disabled = true;
+        noteTitle.disabled = true;
+        noteInput.classList.add('blurred');
+        noteTitle.classList.add('blurred');
+        noteInput.value = 'Private content - Enter private code to view';
+        noteTitle.value = 'Private content';
+    } else {
+        noteInput.disabled = false;
+        noteTitle.disabled = false;
+        noteInput.classList.remove('blurred');
+        noteTitle.classList.remove('blurred');
+        if (noteInput.value === 'Private content - Enter private code to view') {
+            noteInput.value = '';
+        }
+        if (noteTitle.value === 'Private content') {
+            noteTitle.value = '';
+        }
+    }
     
     notes.forEach(note => {
         const noteElement = document.createElement('div');
@@ -22,7 +51,7 @@ function displayNotes(notes) {
         const contentElement = document.createElement('p');
         if (note.isLocked) {
             contentElement.classList.add('blurred');
-            contentElement.textContent = note.content || 'Private content';
+            contentElement.textContent = 'Private content';
             
             const lockIcon = document.createElement('span');
             lockIcon.className = 'lock-icon';
@@ -285,4 +314,123 @@ style.textContent = `
         cursor: not-allowed;
     }
 `;
-document.head.appendChild(style); 
+document.head.appendChild(style);
+
+// Add button container styles and reposition buttons
+const buttonContainerStyle = document.createElement('style');
+buttonContainerStyle.textContent = `
+    .button-container {
+        display: flex;
+        gap: 10px;
+        margin: 10px 0;
+        justify-content: center;
+        align-items: center;
+        padding: 10px;
+        background: #f5f5f5;
+        border-radius: 5px;
+    }
+    
+    .button-container button {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+    
+    .button-container button:hover {
+        opacity: 0.9;
+    }
+    
+    .button-container .save-btn {
+        background: #e0e0e0;
+    }
+    
+    .button-container .refresh-btn {
+        background: #e0e0e0;
+    }
+    
+    .button-container .private-btn {
+        background: #e0e0e0;
+    }
+    
+    .button-container .save-close-btn {
+        background: #1a73e8;
+        color: white;
+    }
+    
+    .button-container .close-btn {
+        background: #e0e0e0;
+    }
+    
+    .blurred {
+        filter: blur(5px);
+        user-select: none;
+        pointer-events: none;
+    }
+    
+    .lock-icon {
+        margin-left: 8px;
+        font-size: 16px;
+    }
+    
+    .file-name {
+        display: inline-block;
+        margin-right: 10px;
+    }
+    
+    button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+`;
+document.head.appendChild(buttonContainerStyle);
+
+// Create and insert button container
+function createButtonContainer() {
+    const noteForm = document.getElementById('noteForm');
+    const buttonContainer = document.createElement('div');
+    buttonContainer.className = 'button-container';
+    
+    const saveBtn = document.createElement('button');
+    saveBtn.textContent = 'Save';
+    saveBtn.className = 'save-btn';
+    saveBtn.onclick = () => document.getElementById('noteForm').dispatchEvent(new Event('submit'));
+    
+    const refreshBtn = document.createElement('button');
+    refreshBtn.textContent = 'Refresh';
+    refreshBtn.className = 'refresh-btn';
+    refreshBtn.onclick = () => fetchUserContent(currentUserId, currentPrivateCode);
+    
+    const privateBtn = document.createElement('button');
+    privateBtn.textContent = 'Save as Private';
+    privateBtn.className = 'private-btn';
+    privateBtn.onclick = () => {
+        document.getElementById('saveNoteAsPrivate').checked = true;
+        document.getElementById('noteForm').dispatchEvent(new Event('submit'));
+    };
+    
+    const saveCloseBtn = document.createElement('button');
+    saveCloseBtn.textContent = 'Save & Close';
+    saveCloseBtn.className = 'save-close-btn';
+    saveCloseBtn.onclick = async () => {
+        await document.getElementById('noteForm').dispatchEvent(new Event('submit'));
+        clearContent();
+    };
+    
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = 'Close';
+    closeBtn.className = 'close-btn';
+    closeBtn.onclick = clearContent;
+    
+    buttonContainer.append(saveBtn, refreshBtn, privateBtn, saveCloseBtn, closeBtn);
+    
+    // Insert after the note input but before the file upload section
+    const fileSection = document.querySelector('#fileForm');
+    noteForm.insertBefore(buttonContainer, noteForm.querySelector('button[type="submit"]'));
+    noteForm.querySelector('button[type="submit"]').style.display = 'none';
+}
+
+// Call this function when the page loads
+document.addEventListener('DOMContentLoaded', createButtonContainer); 
