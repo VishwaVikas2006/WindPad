@@ -269,41 +269,50 @@ connectDB().then(() => {
     const Note = mongoose.model('Note', noteSchema);
 
     // API Routes
-    app.post('/api/upload', upload.single('file'), async (req, res, next) => {
+    app.post('/api/upload', upload.single('file'), async (req, res) => {
         try {
             if (!req.file) {
-                return next(new Error('No file uploaded'));
+                return res.status(400).json({ message: 'No file uploaded' });
             }
 
-            const { userId, isPrivate, privateCode } = req.body;
-
+            const { userId } = req.body;
             if (!userId) {
                 return res.status(400).json({ message: 'User ID is required' });
             }
 
-            const newFile = new File({
+            const isPrivate = req.body.isPrivate === 'true';
+            const privateCode = req.body.privateCode;
+
+            if (isPrivate && !privateCode) {
+                return res.status(400).json({ message: 'Private code is required for private files' });
+            }
+
+            const fileSize = req.file.size;
+            if (fileSize > 10 * 1024 * 1024) { // 10MB limit
+                return res.status(400).json({ message: 'File size exceeds 10MB limit' });
+            }
+
+            const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.ms-powerpoint', 'image/jpeg', 'image/png', 'image/gif'];
+            if (!allowedTypes.includes(req.file.mimetype)) {
+                return res.status(400).json({ message: 'File type not supported' });
+            }
+
+            const file = new File({
                 filename: req.file.originalname,
-                contentType: req.file.mimetype,
-                size: req.file.size,
                 fileId: req.file.id,
+                size: fileSize,
+                uploadDate: new Date(),
+                contentType: req.file.mimetype,
                 userId: userId,
-                isPrivate: isPrivate === 'true',
-                privateCode: isPrivate === 'true' ? privateCode : null,
-                metadata: {
-                    ...req.file.metadata,
-                    uploadedAt: new Date(),
-                    originalName: req.file.originalname
-                }
+                isPrivate: isPrivate,
+                privateCode: privateCode
             });
 
-            await newFile.save();
-            res.status(201).json({
-                message: 'File uploaded successfully',
-                file: newFile
-            });
+            await file.save();
+            res.status(200).json({ message: 'File uploaded successfully' });
         } catch (error) {
-            console.error('Error in /api/upload handler:', error);
-            return next(error);
+            console.error('Upload error:', error);
+            res.status(500).json({ message: 'Error uploading file' });
         }
     });
 
