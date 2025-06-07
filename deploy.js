@@ -249,17 +249,45 @@ connectDB().then(() => {
 
     // Note Schema
     const noteSchema = new mongoose.Schema({
-        accessCode: { type: String, required: true, unique: true },
-        content: String,
-        isLocked: { type: Boolean, default: false },
+        accessCode: { 
+            type: String, 
+            required: true, 
+            unique: true,
+            trim: true 
+        },
+        content: {
+            type: String,
+            default: ''
+        },
+        isLocked: { 
+            type: Boolean, 
+            default: false 
+        },
         padLockCode: String,
         files: [{
             name: String,
             originalName: String,
             path: String,
             size: Number,
-            uploadDate: { type: Date, default: Date.now }
-        }]
+            uploadDate: { 
+                type: Date, 
+                default: Date.now 
+            }
+        }],
+        createdAt: { 
+            type: Date, 
+            default: Date.now 
+        },
+        updatedAt: { 
+            type: Date, 
+            default: Date.now 
+        }
+    });
+
+    // Update the updatedAt timestamp before saving
+    noteSchema.pre('save', function(next) {
+        this.updatedAt = new Date();
+        next();
     });
 
     const Note = mongoose.model('Note', noteSchema);
@@ -269,11 +297,15 @@ connectDB().then(() => {
         try {
             const { accessCode, content, isLocked, padLockCode } = req.body;
             
-            let note = await Note.findOne({ accessCode });
+            if (!accessCode) {
+                return res.status(400).json({ error: 'Access code is required' });
+            }
+
+            let note = await Note.findOne({ accessCode: accessCode.trim() });
             
             if (note) {
-                note.content = content;
-                note.isLocked = isLocked;
+                note.content = content || '';
+                note.isLocked = isLocked || false;
                 if (isLocked) {
                     note.padLockCode = padLockCode;
                 } else {
@@ -281,15 +313,18 @@ connectDB().then(() => {
                 }
             } else {
                 note = new Note({
-                    accessCode,
-                    content,
-                    isLocked,
+                    accessCode: accessCode.trim(),
+                    content: content || '',
+                    isLocked: isLocked || false,
                     padLockCode: isLocked ? padLockCode : undefined
                 });
             }
             
             await note.save();
-            res.json({ success: true });
+            res.json({ 
+                success: true,
+                message: 'Note saved successfully'
+            });
         } catch (error) {
             console.error('Error saving note:', error);
             res.status(500).json({ error: 'Failed to save note' });
@@ -298,11 +333,24 @@ connectDB().then(() => {
 
     app.get('/api/notes/:accessCode', async (req, res) => {
         try {
-            const note = await Note.findOne({ accessCode: req.params.accessCode });
+            const note = await Note.findOne({ accessCode: req.params.accessCode.trim() });
             if (!note) {
-                return res.json({ content: '', isLocked: false });
+                return res.json({ 
+                    content: '', 
+                    isLocked: false,
+                    files: []
+                });
             }
-            res.json(note);
+            res.json({
+                content: note.content,
+                isLocked: note.isLocked,
+                padLockCode: note.padLockCode,
+                files: note.files.map(file => ({
+                    name: file.name,
+                    originalName: file.originalName,
+                    uploadDate: file.uploadDate
+                }))
+            });
         } catch (error) {
             console.error('Error loading note:', error);
             res.status(500).json({ error: 'Failed to load note' });
@@ -317,12 +365,14 @@ connectDB().then(() => {
 
             const { accessCode } = req.body;
             if (!accessCode) {
+                // Clean up the uploaded file
+                fs.unlink(req.file.path, () => {});
                 return res.status(400).json({ error: 'Access code is required' });
             }
 
-            let note = await Note.findOne({ accessCode });
+            let note = await Note.findOne({ accessCode: accessCode.trim() });
             if (!note) {
-                note = new Note({ accessCode });
+                note = new Note({ accessCode: accessCode.trim() });
             }
 
             const fileInfo = {
@@ -337,6 +387,7 @@ connectDB().then(() => {
 
             res.json({ 
                 success: true, 
+                message: 'File uploaded successfully',
                 file: {
                     name: fileInfo.name,
                     originalName: fileInfo.originalName
@@ -346,9 +397,7 @@ connectDB().then(() => {
             console.error('Error uploading file:', error);
             // Clean up the uploaded file if there was an error
             if (req.file) {
-                fs.unlink(req.file.path, (err) => {
-                    if (err) console.error('Error deleting file:', err);
-                });
+                fs.unlink(req.file.path, () => {});
             }
             res.status(500).json({ error: 'Failed to upload file' });
         }
@@ -356,7 +405,7 @@ connectDB().then(() => {
 
     app.get('/api/files/:accessCode', async (req, res) => {
         try {
-            const note = await Note.findOne({ accessCode: req.params.accessCode });
+            const note = await Note.findOne({ accessCode: req.params.accessCode.trim() });
             if (!note || !note.files) {
                 return res.json([]);
             }
@@ -372,6 +421,40 @@ connectDB().then(() => {
         } catch (error) {
             console.error('Error loading files:', error);
             res.status(500).json({ error: 'Failed to load files' });
+        }
+    });
+
+    // Delete file endpoint
+    app.delete('/api/files/:accessCode/:filename', async (req, res) => {
+        try {
+            const { accessCode, filename } = req.params;
+            const note = await Note.findOne({ accessCode: accessCode.trim() });
+            
+            if (!note) {
+                return res.status(404).json({ error: 'Note not found' });
+            }
+
+            const fileIndex = note.files.findIndex(file => file.name === filename);
+            if (fileIndex === -1) {
+                return res.status(404).json({ error: 'File not found' });
+            }
+
+            const filePath = note.files[fileIndex].path;
+            note.files.splice(fileIndex, 1);
+            await note.save();
+
+            // Delete the file from disk
+            fs.unlink(filePath, (err) => {
+                if (err) console.error('Error deleting file from disk:', err);
+            });
+
+            res.json({ 
+                success: true, 
+                message: 'File deleted successfully' 
+            });
+        } catch (error) {
+            console.error('Error deleting file:', error);
+            res.status(500).json({ error: 'Failed to delete file' });
         }
     });
 

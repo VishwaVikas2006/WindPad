@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GlobalPad - Simple and Secure File Sharing</title>
+    <title>GlobalPad - Simple and secure file sharing</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         * {
@@ -23,229 +23,147 @@
         }
 
         .logo {
-            width: 80px;
-            height: 80px;
-            background: #1a73e8;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .logo-circle {
+            width: 100px;
+            height: 100px;
+            background-color: #1a73e8;
             border-radius: 50%;
-            display: flex;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 1rem;
-            font-size: 2rem;
             color: white;
-            font-weight: 600;
-        }
-
-        h1 {
-            font-size: 2.5rem;
-            color: #1a1a1a;
-            margin-bottom: 0.5rem;
-        }
-
-        .subtitle {
-            color: #666;
-            font-size: 1.2rem;
-            margin-bottom: 3rem;
-        }
-
-        .container {
-            background: white;
-            padding: 2rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 500px;
-            text-align: center;
-        }
-
-        .access-title {
-            font-size: 1.8rem;
-            color: #1a1a1a;
-            margin-bottom: 1rem;
-        }
-
-        .access-subtitle {
-            color: #666;
-            margin-bottom: 2rem;
-        }
-
-        .input-group {
-            margin-bottom: 1.5rem;
-        }
-
-        input {
-            width: 100%;
-            padding: 0.8rem 1rem;
-            font-size: 1rem;
-            border: 2px solid #e1e1e1;
-            border-radius: 8px;
-            outline: none;
-            transition: border-color 0.2s;
+            font-size: 32px;
+            font-weight: bold;
             margin-bottom: 10px;
         }
 
-        input:focus {
-            border-color: #1a73e8;
-        }
-
-        .btn {
-            background: #1a73e8;
-            color: white;
-            border: none;
-            padding: 0.8rem 2rem;
-            font-size: 1rem;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-decoration: none;
-            display: inline-block;
-        }
-
-        .btn:hover {
-            background: #1557b0;
-            transform: translateY(-1px);
-        }
-
-        .btn:active {
-            transform: translateY(0);
-        }
-
-        .btn-secondary {
-            background: #e1e1e1;
+        h1 {
+            text-align: center;
             color: #333;
+            margin: 0;
+            font-size: 2.5em;
         }
 
-        .btn-secondary:hover {
-            background: #d1d1d1;
-        }
-
-        .note {
+        .subtitle {
+            text-align: center;
             color: #666;
-            font-size: 0.9rem;
-            margin-top: 1rem;
+            margin-top: 5px;
+            font-size: 1.2em;
         }
 
-        .editor-container {
-            display: none;
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-top: 30px;
+        }
+
+        .access-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"], textarea {
             width: 100%;
-            max-width: 800px;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            margin-top: 2rem;
-        }
-
-        .editor-header {
-            padding: 1rem;
-            background: #f8f9fa;
-            border-bottom: 1px solid #e1e1e1;
-            border-radius: 12px 12px 0 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-
-        .editor-content {
-            padding: 1rem;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
         }
 
         textarea {
-            width: 100%;
-            min-height: 300px;
-            padding: 1rem;
-            border: 1px solid #e1e1e1;
-            border-radius: 8px;
-            font-size: 1rem;
+            height: 200px;
             resize: vertical;
-            line-height: 1.5;
         }
 
-        textarea:focus {
-            border-color: #1a73e8;
-            outline: none;
+        button {
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            transition: background-color 0.3s;
         }
 
-        .file-upload {
-            margin: 1rem 0;
-            padding: 1rem;
-            border: 2px dashed #e1e1e1;
-            border-radius: 8px;
-            text-align: center;
-            transition: all 0.2s;
+        button:hover {
+            background-color: #1557b0;
         }
 
-        .file-upload:hover {
-            border-color: #1a73e8;
-            background: rgba(26, 115, 232, 0.05);
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
         }
 
-        .file-list {
-            margin-top: 1rem;
+        .help-text {
+            color: #666;
+            font-size: 0.9em;
+            margin: 10px 0;
+        }
+
+        .file-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
         }
 
         .file-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 1rem;
-            background: #f8f9fa;
-            border-radius: 8px;
-            margin-bottom: 0.5rem;
-            transition: all 0.2s;
+            padding: 10px;
+            border: 1px solid #eee;
+            margin: 5px 0;
+            border-radius: 5px;
         }
 
-        .file-item:hover {
-            background: #f0f0f0;
+        .file-item a {
+            color: #1a73e8;
+            text-decoration: none;
+            margin: 0 10px;
         }
 
-        .button-group {
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
+        .file-item button {
+            background-color: #dc3545;
+            padding: 5px 10px;
+            font-size: 0.9em;
         }
 
-        .status {
-            position: fixed;
-            top: 1rem;
-            right: 1rem;
-            padding: 1rem;
-            border-radius: 8px;
-            background: #4caf50;
-            color: white;
+        .pad-lock-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        .status-message {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
             display: none;
-            z-index: 9999;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
-        /* Pad Lock Styles */
-        .pad-lock-container {
-            margin: 15px 0;
-            padding: 15px;
-            background: rgba(26, 115, 232, 0.1);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            flex-wrap: wrap;
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
         }
 
-        .pad-lock-toggle {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            min-width: 200px;
-        }
-
-        .pad-lock-icon {
-            font-size: 1.2em;
-            color: #1a73e8;
-        }
-
-        .pad-lock-text {
-            color: #1a73e8;
-            font-weight: 500;
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
         }
 
         .switch {
@@ -253,7 +171,6 @@
             display: inline-block;
             width: 60px;
             height: 34px;
-            flex-shrink: 0;
         }
 
         .switch input {
@@ -294,61 +211,6 @@
             transform: translateX(26px);
         }
 
-        .pad-lock-input {
-            display: none;
-            padding: 10px;
-            background: rgba(26, 115, 232, 0.05);
-            border-radius: 6px;
-            flex-grow: 1;
-            min-width: 250px;
-        }
-
-        .pad-lock-hint {
-            color: #1a73e8;
-            font-style: italic;
-            font-size: 0.9em;
-            margin-top: 5px;
-        }
-
-        .locked-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.85);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-
-        .locked-content {
-            max-width: 500px;
-            padding: 30px;
-            text-align: center;
-            color: white;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            backdrop-filter: blur(10px);
-        }
-
-        .encrypted-background {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            z-index: -1;
-            opacity: 0.1;
-            font-family: monospace;
-            font-size: 12px;
-            overflow: hidden;
-            white-space: pre-wrap;
-            color: #1a73e8;
-        }
-
         @media (max-width: 600px) {
             .editor-header {
                 flex-direction: column;
@@ -367,56 +229,50 @@
     </style>
   </head>
   <body>
-    <div class="logo">GP</div>
-    <h1>GlobalPad</h1>
-    <p class="subtitle">Simple and secure file sharing</p>
-
-    <div class="container" id="access-container">
-        <h2 class="access-title">Access Your Notes</h2>
-        <p class="access-subtitle">Enter an access code to manage your notes and files</p>
-        <div class="input-group">
-            <input type="text" id="access-code" placeholder="Enter access code" autofocus>
-        </div>
-        <button class="btn" id="open-btn">Open</button>
-        <p class="note">Use any code you want. Just remember it to access your notes later!</p>
+    <div class="logo">
+        <div class="logo-circle">GP</div>
+        <h1>GlobalPad</h1>
+        <div class="subtitle">Simple and secure file sharing</div>
     </div>
 
-    <div class="editor-container" id="editor-container">
-        <div class="editor-header">
-            <div class="pad-lock-container">
-                <div class="pad-lock-toggle">
-                    <span class="pad-lock-icon">🔒</span>
-                    <span class="pad-lock-text">Pad Lock</span>
-                    <label class="switch">
-                        <input type="checkbox" id="padLockToggle">
-                        <span class="slider"></span>
-                    </label>
-                </div>
-                <div id="padLockInput" class="pad-lock-input">
-                    <input type="password" id="padLockCode" placeholder="Enter pad lock code">
-                    <div class="pad-lock-hint">Lock this note with a second code for extra security</div>
-                </div>
+    <div class="container">
+        <div class="access-section">
+            <h2>Access Your Notes</h2>
+            <input type="text" id="access-code" placeholder="Enter an access code to manage your notes and files">
+            <div class="help-text">Use any code you want. Just remember it to access your notes later!</div>
+            <button id="open-button">Open</button>
+        </div>
+
+        <div id="status-message" class="status-message"></div>
+
+        <textarea id="note-content" placeholder="Your notes will appear here..."></textarea>
+        <button id="save-button">Save</button>
+
+        <div class="pad-lock-section">
+            <label class="switch">
+                <input type="checkbox" id="pad-lock-toggle">
+                <span class="slider"></span>
+            </label>
+            <span>Enable Pad Lock</span>
+            
+            <div id="pad-lock-section" style="display: none;">
+                <input type="text" id="pad-lock-code" placeholder="Enter a pad lock code">
+                <div class="help-text">This code will be required to view the note's contents</div>
             </div>
-            <div class="button-group">
-                <button class="btn btn-secondary" id="save-btn">Save</button>
-                <button class="btn btn-secondary" id="refresh-btn">Refresh</button>
-                <button class="btn" id="save-close-btn">Save & Close</button>
-                <button class="btn btn-secondary" id="close-btn">Close</button>
+            
+            <div id="pad-lock-verify-section" style="display: none;">
+                <input type="text" id="pad-lock-verify-code" placeholder="Enter the pad lock code">
+                <button id="pad-lock-verify-button">Verify</button>
             </div>
         </div>
-        <div class="editor-content">
-            <textarea id="note-content" placeholder="Start typing your notes here..."></textarea>
-            <div class="file-upload">
-                <button class="btn" id="upload-btn">Upload Files</button>
-                <p class="note">Supported files: PDF, DOC, PPT, Images (Max size: 10MB)</p>
-            </div>
-            <div class="file-list" id="file-list">
-                <!-- Files will be listed here -->
-            </div>
+
+        <div class="file-section">
+            <h3>Files</h3>
+            <input type="file" id="file-input">
+            <button id="upload-button">Upload</button>
+            <div id="file-list"></div>
         </div>
     </div>
-
-    <div class="status" id="status-message"></div>
 
     <script>
         // DOM Elements
