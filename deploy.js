@@ -52,6 +52,7 @@ class GridFsStorageEngine {
         });
 
         uploadStream.on('finish', (uploadedFile) => {
+            console.log('GridFS uploadStream finished. uploadedFile:', uploadedFile);
             // The 'uploadedFile' object here is the GridFS file document
             // We need to return the information Multer expects in req.file
             if (!uploadedFile) {
