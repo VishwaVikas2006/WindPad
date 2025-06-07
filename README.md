@@ -1,33 +1,28 @@
 # GlobalPad
 
-A simple note-taking and file sharing application built with Node.js, Express, and MongoDB Atlas.
+A simple and secure file sharing web application with pad lock feature for enhanced privacy.
 
 ## Features
 
-- User-based note management and file sharing
-- Real-time note saving and editing
-- File upload support (up to 10MB)
-  - PDF documents
-  - Microsoft Word documents (.doc, .docx)
-  - PowerPoint presentations (.ppt, .pptx)
-  - Images (jpg, png)
-  - Text files
-- File management (download, delete)
-- Simple and modern UI
-- No account required - just use an access code
+- Create and manage notes with unique access codes
+- Upload and share files (up to 10MB)
+- Pad lock feature for additional security
+- Real-time saving and updates
+- Modern and responsive UI
+- Second-level encryption for sensitive content
 
 ## Prerequisites
 
 - Node.js (v14 or higher)
-- MongoDB Atlas account
+- MongoDB (v4.4 or higher)
 - npm or yarn package manager
 
-## Setup
+## Installation
 
 1. Clone the repository:
 ```bash
 git clone https://github.com/VishwaVikas2006/WindPad.git
-cd globalpad
+cd WindPad
 ```
 
 2. Install dependencies:
@@ -35,13 +30,9 @@ cd globalpad
 npm install
 ```
 
-3. Create a `.env` file in the root directory with your MongoDB connection string:
-```
-MONGODB_URI=mongodb+srv://vishwavikas4444:Vishwa@cluster0.lrhrsuf.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
-PORT=3000
-```
+3. Make sure MongoDB is running on your system.
 
-4. Start the server:
+4. Start the application:
 ```bash
 npm start
 ```
@@ -51,26 +42,30 @@ For development with auto-reload:
 npm run dev
 ```
 
-5. Open your browser and navigate to `http://localhost:3000`
+The application will be available at `http://localhost:3000`.
 
 ## Usage
 
-1. Enter an access code to start using GlobalPad
-2. Write and save notes in the text editor
-3. Upload files (max 10MB) using the upload button
-4. View, download, or delete your files from the list
-5. Use Save & Close or Close to return to the home page
-6. Use the same access code to access your notes and files later
+1. Access the application through your web browser
+2. Enter any access code to create or access your notes
+3. Use the pad lock feature for additional security:
+   - Toggle the pad lock switch
+   - Enter a pad lock code
+   - Your content will be encrypted and locked
+4. Upload files using the upload button
+5. Save your changes and close when done
 
-## API Endpoints
+## Security Features
 
-- `POST /api/note` - Save a note
-- `GET /api/notes/user/:userId` - Get notes for a user
-- `POST /api/upload` - Upload a file
-- `GET /api/files/user/:userId` - Get all files for a user
-- `GET /api/download/:fileId` - Download a file
-- `DELETE /api/delete/:fileId` - Delete a file
+- Access code-based note management
+- Pad lock feature with second-level encryption
+- Secure file upload handling
+- MongoDB for persistent storage
+
+## Contributing
+
+Feel free to submit issues and enhancement requests.
 
 ## License
 
-MIT 
+[MIT](LICENSE) 

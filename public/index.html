@@ -84,6 +84,7 @@
             border-radius: 8px;
             outline: none;
             transition: border-color 0.2s;
+            margin-bottom: 10px;
         }
 
         input:focus {
@@ -105,13 +106,21 @@
             background: #1557b0;
         }
 
+        .btn-secondary {
+            background: #e1e1e1;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #d1d1d1;
+        }
+
         .note {
             color: #666;
             font-size: 0.9rem;
             margin-top: 1rem;
         }
 
-        /* Editor styles */
         .editor-container {
             display: none;
             width: 100%;
@@ -173,15 +182,6 @@
             gap: 0.5rem;
         }
 
-        .btn-secondary {
-            background: #e1e1e1;
-            color: #333;
-        }
-
-        .btn-secondary:hover {
-            background: #d1d1d1;
-        }
-
         .status {
             position: fixed;
             top: 1rem;
@@ -193,116 +193,123 @@
             display: none;
         }
 
-        .blur-content {
-            filter: blur(5px);
-            pointer-events: none;
-            user-select: none;
+        /* Pad Lock Styles */
+        .pad-lock-container {
+            margin: 15px 0;
+            padding: 15px;
+            background: rgba(26, 115, 232, 0.1);
+            border-radius: 8px;
         }
 
-        .private-overlay {
+        .pad-lock-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .pad-lock-icon {
+            font-size: 1.2em;
+            color: #1a73e8;
+        }
+
+        .pad-lock-text {
+            color: #1a73e8;
+            font-weight: 500;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
             position: absolute;
+            cursor: pointer;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(255, 255, 255, 0.9);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 10;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
         }
 
-        .private-access {
-            background: white;
-            padding: 2rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            max-width: 400px;
-            width: 90%;
-        }
-
-        .private-toggle {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin: 1rem 0;
-        }
-
-        .private-code-input {
-            display: none;
-            margin-top: 1rem;
-        }
-
-        .private-code-input.show {
-            display: block;
-        }
-
-        .locked-item {
-            position: relative;
-        }
-
-        .lock-icon {
+        .slider:before {
             position: absolute;
-            right: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 1.2rem;
-            color: #666;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
         }
 
-        .modal {
+        input:checked + .slider {
+            background-color: #1a73e8;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .pad-lock-input {
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(26, 115, 232, 0.05);
+            border-radius: 6px;
+            display: none;
+        }
+
+        .pad-lock-hint {
+            color: #1a73e8;
+            font-style: italic;
+            font-size: 0.9em;
+        }
+
+        .locked-overlay {
             position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             z-index: 1000;
         }
 
-        .modal-content {
-            background: white;
-            padding: 2rem;
-            border-radius: 12px;
-            width: 90%;
-            max-width: 400px;
+        .locked-content {
+            max-width: 500px;
+            padding: 30px;
             text-align: center;
+            color: white;
         }
 
-        .blurred-content {
-            filter: blur(5px);
-            position: relative;
-        }
-
-        .locked-overlay {
+        .encrypted-background {
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.9);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10;
-        }
-
-        .locked-message {
-            background: white;
-            padding: 1rem;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            text-align: center;
-        }
-
-        .lock-icon {
-            font-size: 1.5rem;
-            margin-bottom: 0.5rem;
+            right: 0;
+            bottom: 0;
+            z-index: -1;
+            opacity: 0.1;
+            font-family: monospace;
+            font-size: 12px;
+            overflow: hidden;
+            white-space: pre-wrap;
+            color: #1a73e8;
         }
     </style>
   </head>
@@ -318,7 +325,6 @@
         <p class="access-subtitle">Enter an access code to manage your notes and files</p>
         <div class="input-group">
             <input type="text" id="access-code" placeholder="Enter access code">
-            <input type="password" id="private-access-code" placeholder="Enter private code (optional)" style="margin-top: 10px;">
         </div>
         <button class="btn" id="open-btn">Open</button>
         <p class="note">Use any code you want. Just remember it to access your notes later!</p>
@@ -326,37 +332,36 @@
 
     <div class="editor-container" id="editor-container">
         <div class="editor-header">
-            <div class="status-text">Your code is in use</div>
+            <div class="pad-lock-container">
+                <div class="pad-lock-toggle">
+                    <span class="pad-lock-icon">🔒</span>
+                    <span class="pad-lock-text">Pad Lock</span>
+                    <label class="switch">
+                        <input type="checkbox" id="padLockToggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div id="padLockInput" class="pad-lock-input">
+                    <input type="password" id="padLockCode" placeholder="Enter pad lock code">
+                    <small class="pad-lock-hint">Lock this Coded Pad™ by encrypting its notes with a second code.</small>
+                </div>
+            </div>
             <div class="button-group">
                 <button class="btn btn-secondary" id="save-btn">Save</button>
                 <button class="btn btn-secondary" id="refresh-btn">Refresh</button>
-                <button class="btn btn-secondary" id="private-btn">Save as Private</button>
                 <button class="btn" id="save-close-btn">Save & Close</button>
                 <button class="btn btn-secondary" id="close-btn">Close</button>
             </div>
         </div>
         <div class="editor-content">
-            <div id="private-modal" class="modal" style="display: none;">
-                <div class="modal-content">
-                    <h3>Set Private Access</h3>
-                    <p>Enter a private code to protect your content</p>
-                    <input type="password" id="private-code" placeholder="Enter private code">
-                    <div class="button-group" style="margin-top: 15px;">
-                        <button class="btn" id="confirm-private">Confirm</button>
-                        <button class="btn btn-secondary" id="cancel-private">Cancel</button>
-                    </div>
-                </div>
+            <textarea id="note-content" placeholder="Start typing your notes here..."></textarea>
+            <div class="file-upload">
+                <input type="file" id="file-input" accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.jpg,.jpeg,.png" style="display: none">
+                <button class="btn" id="upload-btn">Upload Files</button>
+                <p class="note">Supported files: PDF, DOC, PPT, Images (Max size: 10MB)</p>
             </div>
-            <div id="content-wrapper">
-                <textarea id="note-content" placeholder="Start typing your notes here..."></textarea>
-                <div class="file-upload">
-                    <input type="file" id="file-input" accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.jpg,.jpeg,.png" style="display: none">
-                    <button class="btn" id="upload-btn">Upload Files</button>
-                    <p class="note">Supported files: PDF, DOC, PPT, Images (Max size: 10MB)</p>
-                </div>
-                <div class="file-list" id="file-list">
-                    <!-- Files will be listed here -->
-                </div>
+            <div class="file-list" id="file-list">
+                <!-- Files will be listed here -->
             </div>
         </div>
     </div>
@@ -378,13 +383,11 @@
         const uploadBtn = document.getElementById('upload-btn');
         const fileList = document.getElementById('file-list');
         const statusMessage = document.getElementById('status-message');
-        const privateBtn = document.getElementById('private-btn');
-        const privateModal = document.getElementById('private-modal');
-        const confirmPrivateBtn = document.getElementById('confirm-private');
-        const cancelPrivateBtn = document.getElementById('cancel-private');
-        const privateAccessCode = document.getElementById('private-access-code');
-        let isPrivate = false;
-        let currentPrivateCode = '';
+        const padLockToggle = document.getElementById('padLockToggle');
+        const padLockInput = document.getElementById('padLockInput');
+        const padLockCode = document.getElementById('padLockCode');
+        let isPadLocked = false;
+        let currentPadLockCode = '';
 
         // Show status message
         function showStatus(message, isError = false) {
@@ -413,8 +416,8 @@
             const formData = new FormData();
             formData.append('file', file);
             formData.append('userId', accessCode.value);
-            formData.append('isPrivate', isPrivate);
-            formData.append('privateCode', currentPrivateCode);
+            formData.append('isPadLocked', isPadLocked);
+            formData.append('padLockCode', currentPadLockCode);
 
             try {
                 const response = await fetch('/api/upload', {
@@ -433,7 +436,7 @@
         // Load files
         async function loadFiles() {
             try {
-                const response = await fetch(`/api/files/user/${accessCode.value}?privateCode=${privateAccessCode.value || ''}`);
+                const response = await fetch(`/api/files/user/${accessCode.value}?padLockCode=${currentPadLockCode || ''}`);
                 const files = await response.json();
 
                 fileList.innerHTML = files.map(file => {
@@ -468,7 +471,7 @@
 
         // Download file
         async function downloadFile(fileId) {
-            window.open(`/api/download/${fileId}?privateCode=${privateAccessCode.value || ''}`);
+            window.open(`/api/download/${fileId}?padLockCode=${currentPadLockCode || ''}`);
         }
 
         // Delete file
@@ -494,7 +497,7 @@
         // Load note
         async function loadNote() {
             try {
-                const response = await fetch(`/api/notes/user/${accessCode.value}?privateCode=${privateAccessCode.value || ''}`);
+                const response = await fetch(`/api/notes/user/${accessCode.value}?padLockCode=${currentPadLockCode || ''}`);
                 const notes = await response.json();
                 
                 if (notes.length > 0) {
@@ -522,28 +525,22 @@
             }
         }
 
-        // Show private modal
-        privateBtn.addEventListener('click', () => {
-            privateModal.style.display = 'flex';
+        // Show pad lock input
+        padLockToggle.addEventListener('click', () => {
+            padLockInput.style.display = padLockInput.style.display === 'none' ? 'block' : 'none';
         });
 
-        // Handle private code confirmation
-        confirmPrivateBtn.addEventListener('click', () => {
-            const code = document.getElementById('private-code').value;
+        // Handle pad lock code confirmation
+        padLockCode.addEventListener('input', () => {
+            const code = padLockCode.value;
             if (code) {
-                currentPrivateCode = code;
-                isPrivate = true;
-                privateModal.style.display = 'none';
-                showStatus('Private access enabled');
+                currentPadLockCode = code;
+                isPadLocked = true;
+                padLockInput.style.display = 'none';
+                showStatus('Pad lock enabled');
             } else {
-                showStatus('Please enter a private code', true);
+                showStatus('Please enter a pad lock code', true);
             }
-        });
-
-        // Handle private modal cancellation
-        cancelPrivateBtn.addEventListener('click', () => {
-            privateModal.style.display = 'none';
-            document.getElementById('private-code').value = '';
         });
 
         // Modified save note function
@@ -557,8 +554,8 @@
                     body: JSON.stringify({
                         userId: accessCode.value,
                         content: noteContent.value,
-                        isPrivate: isPrivate,
-                        privateCode: currentPrivateCode
+                        isPadLocked: isPadLocked,
+                        padLockCode: currentPadLockCode
                     })
                 });
 
@@ -592,16 +589,16 @@
             await saveNote();
             showStatus('Saved successfully');
             setTimeout(() => {
-                isPrivate = false;
-                currentPrivateCode = '';
+                isPadLocked = false;
+                currentPadLockCode = '';
                 accessContainer.style.display = 'block';
                 editorContainer.style.display = 'none';
             }, 1000);
         });
 
         closeBtn.addEventListener('click', () => {
-            isPrivate = false;
-            currentPrivateCode = '';
+            isPadLocked = false;
+            currentPadLockCode = '';
             accessContainer.style.display = 'block';
             editorContainer.style.display = 'none';
         });
