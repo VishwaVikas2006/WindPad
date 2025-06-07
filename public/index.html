@@ -192,6 +192,65 @@
             color: white;
             display: none;
         }
+
+        .blur-content {
+            filter: blur(5px);
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .private-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .private-access {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .private-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+
+        .private-code-input {
+            display: none;
+            margin-top: 1rem;
+        }
+
+        .private-code-input.show {
+            display: block;
+        }
+
+        .locked-item {
+            position: relative;
+        }
+
+        .lock-icon {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.2rem;
+            color: #666;
+        }
     </style>
   </head>
   <body>
@@ -222,14 +281,23 @@
             </div>
         </div>
         <div class="editor-content">
-            <textarea id="note-content" placeholder="Start typing your notes here..."></textarea>
-            <div class="file-upload">
-                <input type="file" id="file-input" accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.jpg,.jpeg,.png" style="display: none">
-                <button class="btn" id="upload-btn">Upload Files</button>
-                <p class="note">Supported files: PDF, DOC, PPT, Images (Max size: 10MB)</p>
+            <div class="private-toggle">
+                <input type="checkbox" id="private-toggle" />
+                <label for="private-toggle">Save as Private</label>
             </div>
-            <div class="file-list" id="file-list">
-                <!-- Files will be listed here -->
+            <div class="private-code-input" id="private-code-input">
+                <input type="password" id="private-code" placeholder="Enter private access code" />
+            </div>
+            <div id="content-wrapper">
+                <textarea id="note-content" placeholder="Start typing your notes here..."></textarea>
+                <div class="file-upload">
+                    <input type="file" id="file-input" accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.jpg,.jpeg,.png" style="display: none">
+                    <button class="btn" id="upload-btn">Upload Files</button>
+                    <p class="note">Supported files: PDF, DOC, PPT, Images (Max size: 10MB)</p>
+                </div>
+                <div class="file-list" id="file-list">
+                    <!-- Files will be listed here -->
+                </div>
             </div>
         </div>
     </div>
@@ -251,6 +319,10 @@
         const uploadBtn = document.getElementById('upload-btn');
         const fileList = document.getElementById('file-list');
         const statusMessage = document.getElementById('status-message');
+        const privateToggle = document.getElementById('private-toggle');
+        const privateCodeInput = document.getElementById('private-code-input');
+        const privateCode = document.getElementById('private-code');
+        const contentWrapper = document.getElementById('content-wrapper');
 
         // Show status message
         function showStatus(message, isError = false) {
@@ -279,6 +351,10 @@
             const formData = new FormData();
             formData.append('file', file);
             formData.append('userId', accessCode.value);
+            formData.append('isPrivate', privateToggle.checked);
+            if (privateToggle.checked) {
+                formData.append('privateCode', privateCode.value);
+            }
 
             try {
                 const response = await fetch('/api/upload', {
@@ -299,15 +375,20 @@
         // Load files
         async function loadFiles() {
             try {
-                const response = await fetch(`/api/files/user/${accessCode.value}`);
+                const response = await fetch(`/api/files/user/${accessCode.value}?privateCode=${privateCode.value || ''}`);
                 const files = await response.json();
 
                 fileList.innerHTML = files.map(file => `
-                    <div class="file-item">
+                    <div class="file-item ${file.isLocked ? 'locked-item' : ''}">
                         <span>${file.filename}</span>
+                        ${file.isLocked ? '<span class="lock-icon">🔒</span>' : ''}
                         <div class="button-group">
-                            <button class="btn btn-secondary" onclick="downloadFile('${file.fileId}')">Download</button>
-                            <button class="btn btn-secondary" onclick="deleteFile('${file.fileId}')">Delete</button>
+                            ${file.isLocked ? `
+                                <button class="btn btn-secondary" onclick="unlockFile('${file.fileId}')">Unlock</button>
+                            ` : `
+                                <button class="btn btn-secondary" onclick="downloadFile('${file.fileId}')">Download</button>
+                                <button class="btn btn-secondary" onclick="deleteFile('${file.fileId}')">Delete</button>
+                            `}
                         </div>
                     </div>
                 `).join('');
@@ -318,7 +399,7 @@
 
         // Download file
         async function downloadFile(fileId) {
-            window.open(`/api/download/${fileId}`);
+            window.open(`/api/download/${fileId}?privateCode=${privateCode.value || ''}`);
         }
 
         // Delete file
@@ -351,7 +432,9 @@
                     },
                     body: JSON.stringify({
                         userId: accessCode.value,
-                        content: noteContent.value
+                        content: noteContent.value,
+                        isPrivate: privateToggle.checked,
+                        privateCode: privateToggle.checked ? privateCode.value : null
                     })
                 });
 
@@ -366,15 +449,82 @@
         // Load note
         async function loadNote() {
             try {
-                const response = await fetch(`/api/notes/user/${accessCode.value}`);
+                const response = await fetch(`/api/notes/user/${accessCode.value}?privateCode=${privateCode.value || ''}`);
                 const notes = await response.json();
+                
                 if (notes.length > 0) {
-                    noteContent.value = notes[0].content;
+                    const note = notes[0];
+                    if (note.isLocked) {
+                        noteContent.value = 'This note is private. Enter the private code to view.';
+                        noteContent.classList.add('blur-content');
+                        contentWrapper.innerHTML += `
+                            <div class="private-overlay">
+                                <div class="private-access">
+                                    <h3>Private Note</h3>
+                                    <p>Enter the private code to view this note</p>
+                                    <input type="password" id="unlock-code" placeholder="Enter private code">
+                                    <button class="btn" onclick="unlockNote()">Unlock</button>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        noteContent.value = note.content;
+                        noteContent.classList.remove('blur-content');
+                    }
                 }
             } catch (error) {
                 showStatus('Failed to load note', true);
             }
         }
+
+        // Unlock file
+        async function unlockFile(fileId) {
+            const code = prompt('Enter private access code:');
+            if (!code) return;
+
+            try {
+                const response = await fetch(`/api/files/user/${accessCode.value}?privateCode=${code}`);
+                const files = await response.json();
+                const file = files.find(f => f.fileId === fileId);
+
+                if (file && !file.isLocked) {
+                    showStatus('File unlocked successfully');
+                    loadFiles();
+                } else {
+                    showStatus('Invalid private code', true);
+                }
+            } catch (error) {
+                showStatus('Failed to unlock file', true);
+            }
+        }
+
+        // Unlock note
+        async function unlockNote() {
+            const unlockCode = document.getElementById('unlock-code').value;
+            if (!unlockCode) return;
+
+            try {
+                const response = await fetch(`/api/notes/user/${accessCode.value}?privateCode=${unlockCode}`);
+                const notes = await response.json();
+                
+                if (notes.length > 0 && !notes[0].isLocked) {
+                    noteContent.value = notes[0].content;
+                    noteContent.classList.remove('blur-content');
+                    contentWrapper.querySelector('.private-overlay').remove();
+                    privateCode.value = unlockCode;
+                    showStatus('Note unlocked successfully');
+                } else {
+                    showStatus('Invalid private code', true);
+                }
+            } catch (error) {
+                showStatus('Failed to unlock note', true);
+            }
+        }
+
+        // Show private code input when toggle is checked
+        privateToggle.addEventListener('change', () => {
+            privateCodeInput.classList.toggle('show', privateToggle.checked);
+        });
 
         // Event listeners
         openBtn.addEventListener('click', () => {

@@ -215,6 +215,14 @@ connectDB().then(() => {
             type: String,
             required: true
         },
+        isPrivate: {
+            type: Boolean,
+            default: false
+        },
+        privateCode: {
+            type: String,
+            default: null
+        },
         metadata: {
             type: Object,
             default: {}
@@ -244,6 +252,14 @@ connectDB().then(() => {
             type: String,
             required: true
         },
+        isPrivate: {
+            type: Boolean,
+            default: false
+        },
+        privateCode: {
+            type: String,
+            default: null
+        },
         createdAt: {
             type: Date,
             default: Date.now
@@ -253,31 +269,26 @@ connectDB().then(() => {
     const Note = mongoose.model('Note', noteSchema);
 
     // API Routes
-    app.post('/api/upload', upload.single('file'), (err, req, res, next) => {
-        if (err) {
-            // This is a Multer error. Pass it to the global error handler.
-            return next(err);
-        }
-        next(); // Continue to the next middleware/route handler
-    }, async (req, res, next) => {
+    app.post('/api/upload', upload.single('file'), async (req, res, next) => {
         try {
             if (!req.file) {
-                // Pass this error to the global error handler
                 return next(new Error('No file uploaded'));
             }
 
-            console.log('req.file after upload:', req.file); // Debugging line
+            const { userId, isPrivate, privateCode } = req.body;
 
-            if (!req.body.userId) {
+            if (!userId) {
                 return res.status(400).json({ message: 'User ID is required' });
             }
 
             const newFile = new File({
-                filename: req.file.originalname, // Multer 2.x and custom storage passes originalname
+                filename: req.file.originalname,
                 contentType: req.file.mimetype,
                 size: req.file.size,
-                fileId: req.file.id, // Now directly available as 'id' from our custom storage
-                userId: req.body.userId,
+                fileId: req.file.id,
+                userId: userId,
+                isPrivate: isPrivate === 'true',
+                privateCode: isPrivate === 'true' ? privateCode : null,
                 metadata: {
                     ...req.file.metadata,
                     uploadedAt: new Date(),
@@ -291,27 +302,35 @@ connectDB().then(() => {
                 file: newFile
             });
         } catch (error) {
-            console.error('Error in /api/upload handler:', error); // Debugging line
-            return next(error); // Pass any caught error to the global error handler
+            console.error('Error in /api/upload handler:', error);
+            return next(error);
         }
     });
 
     app.get('/api/files/user/:userId', async (req, res) => {
         try {
-            if (!req.params.userId) {
+            const { userId } = req.params;
+            const { privateCode } = req.query;
+
+            if (!userId) {
                 return res.status(400).json({ message: 'User ID is required' });
             }
 
             const files = await File.find({
                 $or: [
-                    { userId: req.params.userId },
-                    { 'savedBy.userId': req.params.userId }
+                    { userId: userId },
+                    { 'savedBy.userId': userId }
                 ]
             })
-            .select('filename fileId size uploadDate contentType userId savedBy')
+            .select('filename fileId size uploadDate contentType userId savedBy isPrivate')
             .lean();
 
-            res.json(files || []);
+            const processedFiles = files.map(file => ({
+                ...file,
+                isLocked: file.isPrivate && (!privateCode || file.privateCode !== privateCode)
+            }));
+
+            res.json(processedFiles || []);
         } catch (error) {
             console.error('Error fetching files:', error);
             res.status(500).json({ message: 'Error fetching files' });
@@ -351,9 +370,15 @@ connectDB().then(() => {
 
     app.get('/api/download/:fileId', async (req, res) => {
         try {
+            const { privateCode } = req.query;
             const file = await File.findOne({ fileId: new mongoose.Types.ObjectId(req.params.fileId) });
+            
             if (!file) {
                 return res.status(404).json({ message: 'File not found' });
+            }
+
+            if (file.isPrivate && (!privateCode || file.privateCode !== privateCode)) {
+                return res.status(403).json({ message: 'Private access code required' });
             }
 
             const gfs = getGfs();
@@ -402,7 +427,7 @@ connectDB().then(() => {
     // New API Route for Saving Notes
     app.post('/api/note', async (req, res, next) => {
         try {
-            const { userId, content, title } = req.body;
+            const { userId, content, title, isPrivate, privateCode } = req.body;
 
             if (!userId || !content) {
                 return res.status(400).json({ message: 'User ID and content are required to save a note.' });
@@ -411,7 +436,9 @@ connectDB().then(() => {
             const newNote = new Note({
                 userId,
                 content,
-                title: title || 'Untitled Note'
+                title: title || 'Untitled Note',
+                isPrivate: isPrivate || false,
+                privateCode: isPrivate ? privateCode : null
             });
 
             await newNote.save();
@@ -420,9 +447,9 @@ connectDB().then(() => {
         } catch (error) {
             console.error('Error saving note:', error);
             if (error instanceof mongoose.Error.ValidationError) {
-                return next(error); // Pass Mongoose validation errors to global handler
+                return next(error);
             }
-            next(new Error('Failed to save note: ' + error.message)); // General error
+            next(new Error('Failed to save note: ' + error.message));
         }
     });
 
@@ -430,11 +457,21 @@ connectDB().then(() => {
     app.get('/api/notes/user/:userId', async (req, res, next) => {
         try {
             const { userId } = req.params;
+            const { privateCode } = req.query;
+
             if (!userId) {
                 return res.status(400).json({ message: 'User ID is required to fetch notes.' });
             }
+
             const notes = await Note.find({ userId: userId }).sort({ createdAt: -1 });
-            res.status(200).json(notes);
+            
+            const processedNotes = notes.map(note => ({
+                ...note.toObject(),
+                content: note.isPrivate && (!privateCode || note.privateCode !== privateCode) ? null : note.content,
+                isLocked: note.isPrivate && (!privateCode || note.privateCode !== privateCode)
+            }));
+
+            res.status(200).json(processedNotes);
         } catch (error) {
             console.error('Error fetching notes:', error);
             next(new Error('Failed to fetch notes: ' + error.message));
