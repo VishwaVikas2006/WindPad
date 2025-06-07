@@ -1,14 +1,17 @@
 // DOM Elements
 const accessContainer = document.getElementById('access-container');
 const editorContainer = document.getElementById('editor-container');
-const accessCode = document.getElementById('accessCode');
-const enterBtn = document.getElementById('enterBtn');
-const saveBtn = document.getElementById('saveBtn');
-const refreshBtn = document.getElementById('refreshBtn');
-const saveCloseBtn = document.getElementById('saveCloseBtn');
-const closeBtn = document.getElementById('closeBtn');
-const noteContent = document.getElementById('noteContent');
-const fileList = document.getElementById('fileList');
+const accessCode = document.getElementById('access-code');
+const openBtn = document.getElementById('open-btn');
+const saveBtn = document.getElementById('save-btn');
+const refreshBtn = document.getElementById('refresh-btn');
+const saveCloseBtn = document.getElementById('save-close-btn');
+const closeBtn = document.getElementById('close-btn');
+const noteContent = document.getElementById('note-content');
+const fileInput = document.getElementById('file-input');
+const uploadBtn = document.getElementById('upload-btn');
+const fileList = document.getElementById('file-list');
+const statusMessage = document.getElementById('status-message');
 const padLockToggle = document.getElementById('padLockToggle');
 const padLockInput = document.getElementById('padLockInput');
 const padLockCode = document.getElementById('padLockCode');
@@ -18,17 +21,15 @@ let currentUserId = '';
 let currentPadLockCode = '';
 let isPadLocked = false;
 
-// Handle pad lock toggle
-padLockToggle.addEventListener('change', function(e) {
-    if (e.target.checked) {
-        padLockInput.style.display = 'block';
-    } else {
-        padLockInput.style.display = 'none';
-        padLockCode.value = '';
-        currentPadLockCode = '';
-        isPadLocked = false;
-    }
-});
+// Show status message
+function showStatus(message, isError = false) {
+    statusMessage.textContent = message;
+    statusMessage.style.background = isError ? '#f44336' : '#4caf50';
+    statusMessage.style.display = 'block';
+    setTimeout(() => {
+        statusMessage.style.display = 'none';
+    }, 3000);
+}
 
 // Function to create encrypted background text
 function generateEncryptedBackground() {
@@ -56,7 +57,7 @@ function showPadLockScreen() {
         <p>Please enter the second code to fully decrypt it.</p>
         <input type="password" id="unlockPadLockCode" placeholder="Enter pad lock code">
         <div class="button-group">
-            <button class="btn btn-primary" onclick="unlockContent()">Unlock</button>
+            <button class="btn" onclick="unlockContent()">Unlock</button>
             <button class="btn btn-secondary" onclick="cancelUnlock()">Cancel</button>
         </div>
     `;
@@ -74,7 +75,7 @@ function unlockContent() {
         isPadLocked = false;
         loadContent();
     } else {
-        alert('Invalid pad lock code');
+        showStatus('Invalid pad lock code', true);
     }
 }
 
@@ -113,7 +114,7 @@ async function loadContent() {
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Error loading content');
+        showStatus('Error loading content', true);
     }
 }
 
@@ -134,6 +135,38 @@ function displayFiles(files) {
         </div>
     `).join('');
 }
+
+// Handle file upload
+uploadBtn.addEventListener('click', () => {
+    fileInput.click();
+});
+
+fileInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+        showStatus('File size must be less than 10MB', true);
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('userId', currentUserId);
+
+    try {
+        const response = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) throw new Error('Upload failed');
+        showStatus('File uploaded successfully');
+        loadContent();
+    } catch (error) {
+        showStatus('Failed to upload file', true);
+    }
+});
 
 // Save content
 async function saveContent() {
@@ -167,17 +200,29 @@ async function saveContent() {
             if (!padLockResponse.ok) throw new Error('Failed to set pad lock');
         }
         
-        alert('Saved successfully');
+        showStatus('Saved successfully');
     } catch (error) {
         console.error('Error:', error);
-        alert('Error saving content');
+        showStatus('Error saving content', true);
     }
 }
 
+// Handle pad lock toggle
+padLockToggle.addEventListener('change', function(e) {
+    if (e.target.checked) {
+        padLockInput.style.display = 'block';
+    } else {
+        padLockInput.style.display = 'none';
+        padLockCode.value = '';
+        currentPadLockCode = '';
+        isPadLocked = false;
+    }
+});
+
 // Event Listeners
-enterBtn.addEventListener('click', () => {
+openBtn.addEventListener('click', () => {
     if (!accessCode.value) {
-        alert('Please enter an access code');
+        showStatus('Please enter an access code', true);
         return;
     }
     currentUserId = accessCode.value;
@@ -192,7 +237,7 @@ refreshBtn.addEventListener('click', loadContent);
 
 saveCloseBtn.addEventListener('click', async () => {
     if (padLockToggle.checked && !padLockCode.value) {
-        alert('Please enter a pad lock code');
+        showStatus('Please enter a pad lock code', true);
         return;
     }
     
@@ -202,4 +247,4 @@ saveCloseBtn.addEventListener('click', async () => {
 
 closeBtn.addEventListener('click', () => {
     window.location.href = '/';
-}); 
+});

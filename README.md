@@ -36,26 +36,21 @@ npm run dev
 
 ## Usage
 
-1. Access the application at `http://localhost:3000`
-2. Enter your access code to create or access your pad
-3. Use the pad lock feature to add an extra layer of security to your content
-4. Save and manage your notes and files securely
+1. Enter an access code to create or access your pad
+2. Use the pad lock feature to add an extra layer of security to your content
+3. Save and manage your notes and files securely
+4. Use the same access code to return to your content later
 
-## Security Features
+## Pad Lock Feature
 
-- Two-level security with access codes and pad locks
-- Encrypted content display
-- Secure file management
-- User-specific data isolation
+The pad lock feature provides an additional layer of security for your content:
 
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+1. Toggle the pad lock switch in the editor header
+2. Enter a second code to encrypt your content
+3. Your content will be locked and require both codes to access:
+   - First code: Access code to enter the pad
+   - Second code: Pad lock code to decrypt content
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details. 
+This project is licensed under the MIT License - see the LICENSE file for details.
