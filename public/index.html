@@ -251,6 +251,59 @@
             font-size: 1.2rem;
             color: #666;
         }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .blurred-content {
+            filter: blur(5px);
+            position: relative;
+        }
+
+        .locked-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .locked-message {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .lock-icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
     </style>
   </head>
   <body>
@@ -265,6 +318,7 @@
         <p class="access-subtitle">Enter an access code to manage your notes and files</p>
         <div class="input-group">
             <input type="text" id="access-code" placeholder="Enter access code">
+            <input type="password" id="private-access-code" placeholder="Enter private code (optional)" style="margin-top: 10px;">
         </div>
         <button class="btn" id="open-btn">Open</button>
         <p class="note">Use any code you want. Just remember it to access your notes later!</p>
@@ -276,17 +330,22 @@
             <div class="button-group">
                 <button class="btn btn-secondary" id="save-btn">Save</button>
                 <button class="btn btn-secondary" id="refresh-btn">Refresh</button>
+                <button class="btn btn-secondary" id="private-btn">Save as Private</button>
                 <button class="btn" id="save-close-btn">Save & Close</button>
                 <button class="btn btn-secondary" id="close-btn">Close</button>
             </div>
         </div>
         <div class="editor-content">
-            <div class="private-toggle">
-                <input type="checkbox" id="private-toggle" />
-                <label for="private-toggle">Save as Private</label>
-            </div>
-            <div class="private-code-input" id="private-code-input">
-                <input type="password" id="private-code" placeholder="Enter private access code" />
+            <div id="private-modal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <h3>Set Private Access</h3>
+                    <p>Enter a private code to protect your content</p>
+                    <input type="password" id="private-code" placeholder="Enter private code">
+                    <div class="button-group" style="margin-top: 15px;">
+                        <button class="btn" id="confirm-private">Confirm</button>
+                        <button class="btn btn-secondary" id="cancel-private">Cancel</button>
+                    </div>
+                </div>
             </div>
             <div id="content-wrapper">
                 <textarea id="note-content" placeholder="Start typing your notes here..."></textarea>
@@ -319,10 +378,13 @@
         const uploadBtn = document.getElementById('upload-btn');
         const fileList = document.getElementById('file-list');
         const statusMessage = document.getElementById('status-message');
-        const privateToggle = document.getElementById('private-toggle');
-        const privateCodeInput = document.getElementById('private-code-input');
-        const privateCode = document.getElementById('private-code');
-        const contentWrapper = document.getElementById('content-wrapper');
+        const privateBtn = document.getElementById('private-btn');
+        const privateModal = document.getElementById('private-modal');
+        const confirmPrivateBtn = document.getElementById('confirm-private');
+        const cancelPrivateBtn = document.getElementById('cancel-private');
+        const privateAccessCode = document.getElementById('private-access-code');
+        let isPrivate = false;
+        let currentPrivateCode = '';
 
         // Show status message
         function showStatus(message, isError = false) {
@@ -351,10 +413,8 @@
             const formData = new FormData();
             formData.append('file', file);
             formData.append('userId', accessCode.value);
-            formData.append('isPrivate', privateToggle.checked);
-            if (privateToggle.checked) {
-                formData.append('privateCode', privateCode.value);
-            }
+            formData.append('isPrivate', isPrivate);
+            formData.append('privateCode', currentPrivateCode);
 
             try {
                 const response = await fetch('/api/upload', {
@@ -363,8 +423,6 @@
                 });
 
                 if (!response.ok) throw new Error('Upload failed');
-
-                const result = await response.json();
                 showStatus('File uploaded successfully');
                 loadFiles();
             } catch (error) {
@@ -375,23 +433,34 @@
         // Load files
         async function loadFiles() {
             try {
-                const response = await fetch(`/api/files/user/${accessCode.value}?privateCode=${privateCode.value || ''}`);
+                const response = await fetch(`/api/files/user/${accessCode.value}?privateCode=${privateAccessCode.value || ''}`);
                 const files = await response.json();
 
-                fileList.innerHTML = files.map(file => `
-                    <div class="file-item ${file.isLocked ? 'locked-item' : ''}">
-                        <span>${file.filename}</span>
-                        ${file.isLocked ? '<span class="lock-icon">🔒</span>' : ''}
-                        <div class="button-group">
-                            ${file.isLocked ? `
-                                <button class="btn btn-secondary" onclick="unlockFile('${file.fileId}')">Unlock</button>
-                            ` : `
-                                <button class="btn btn-secondary" onclick="downloadFile('${file.fileId}')">Download</button>
-                                <button class="btn btn-secondary" onclick="deleteFile('${file.fileId}')">Delete</button>
-                            `}
-                        </div>
-                    </div>
-                `).join('');
+                fileList.innerHTML = files.map(file => {
+                    if (file.isLocked) {
+                        return `
+                            <div class="file-item blurred-content">
+                                <div class="locked-overlay">
+                                    <div class="locked-message">
+                                        <div class="lock-icon">🔒</div>
+                                        <p>Private File</p>
+                                    </div>
+                                </div>
+                                <span>${file.filename}</span>
+                            </div>
+                        `;
+                    } else {
+                        return `
+                            <div class="file-item">
+                                <span>${file.filename}</span>
+                                <div class="button-group">
+                                    <button class="btn btn-secondary" onclick="downloadFile('${file.fileId}')">Download</button>
+                                    <button class="btn btn-secondary" onclick="deleteFile('${file.fileId}')">Delete</button>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }).join('');
             } catch (error) {
                 showStatus('Failed to load files', true);
             }
@@ -399,7 +468,7 @@
 
         // Download file
         async function downloadFile(fileId) {
-            window.open(`/api/download/${fileId}?privateCode=${privateCode.value || ''}`);
+            window.open(`/api/download/${fileId}?privateCode=${privateAccessCode.value || ''}`);
         }
 
         // Delete file
@@ -422,7 +491,62 @@
             }
         }
 
-        // Save note
+        // Load note
+        async function loadNote() {
+            try {
+                const response = await fetch(`/api/notes/user/${accessCode.value}?privateCode=${privateAccessCode.value || ''}`);
+                const notes = await response.json();
+                
+                if (notes.length > 0) {
+                    const note = notes[0];
+                    if (note.isLocked) {
+                        noteContent.value = '';
+                        noteContent.classList.add('blurred-content');
+                        contentWrapper.innerHTML = `
+                            <div class="locked-overlay">
+                                <div class="locked-message">
+                                    <div class="lock-icon">🔒</div>
+                                    <p>This note is private</p>
+                                </div>
+                            </div>
+                        ` + contentWrapper.innerHTML;
+                    } else {
+                        noteContent.value = note.content;
+                        noteContent.classList.remove('blurred-content');
+                        const overlay = contentWrapper.querySelector('.locked-overlay');
+                        if (overlay) overlay.remove();
+                    }
+                }
+            } catch (error) {
+                showStatus('Failed to load note', true);
+            }
+        }
+
+        // Show private modal
+        privateBtn.addEventListener('click', () => {
+            privateModal.style.display = 'flex';
+        });
+
+        // Handle private code confirmation
+        confirmPrivateBtn.addEventListener('click', () => {
+            const code = document.getElementById('private-code').value;
+            if (code) {
+                currentPrivateCode = code;
+                isPrivate = true;
+                privateModal.style.display = 'none';
+                showStatus('Private access enabled');
+            } else {
+                showStatus('Please enter a private code', true);
+            }
+        });
+
+        // Handle private modal cancellation
+        cancelPrivateBtn.addEventListener('click', () => {
+            privateModal.style.display = 'none';
+            document.getElementById('private-code').value = '';
+        });
+
+        // Modified save note function
         async function saveNote() {
             try {
                 const response = await fetch('/api/note', {
@@ -433,98 +557,17 @@
                     body: JSON.stringify({
                         userId: accessCode.value,
                         content: noteContent.value,
-                        isPrivate: privateToggle.checked,
-                        privateCode: privateToggle.checked ? privateCode.value : null
+                        isPrivate: isPrivate,
+                        privateCode: currentPrivateCode
                     })
                 });
 
                 if (!response.ok) throw new Error('Save failed');
-
                 showStatus('Note saved successfully');
             } catch (error) {
                 showStatus('Failed to save note', true);
             }
         }
-
-        // Load note
-        async function loadNote() {
-            try {
-                const response = await fetch(`/api/notes/user/${accessCode.value}?privateCode=${privateCode.value || ''}`);
-                const notes = await response.json();
-                
-                if (notes.length > 0) {
-                    const note = notes[0];
-                    if (note.isLocked) {
-                        noteContent.value = 'This note is private. Enter the private code to view.';
-                        noteContent.classList.add('blur-content');
-                        contentWrapper.innerHTML += `
-                            <div class="private-overlay">
-                                <div class="private-access">
-                                    <h3>Private Note</h3>
-                                    <p>Enter the private code to view this note</p>
-                                    <input type="password" id="unlock-code" placeholder="Enter private code">
-                                    <button class="btn" onclick="unlockNote()">Unlock</button>
-                                </div>
-                            </div>
-                        `;
-                    } else {
-                        noteContent.value = note.content;
-                        noteContent.classList.remove('blur-content');
-                    }
-                }
-            } catch (error) {
-                showStatus('Failed to load note', true);
-            }
-        }
-
-        // Unlock file
-        async function unlockFile(fileId) {
-            const code = prompt('Enter private access code:');
-            if (!code) return;
-
-            try {
-                const response = await fetch(`/api/files/user/${accessCode.value}?privateCode=${code}`);
-                const files = await response.json();
-                const file = files.find(f => f.fileId === fileId);
-
-                if (file && !file.isLocked) {
-                    showStatus('File unlocked successfully');
-                    loadFiles();
-                } else {
-                    showStatus('Invalid private code', true);
-                }
-            } catch (error) {
-                showStatus('Failed to unlock file', true);
-            }
-        }
-
-        // Unlock note
-        async function unlockNote() {
-            const unlockCode = document.getElementById('unlock-code').value;
-            if (!unlockCode) return;
-
-            try {
-                const response = await fetch(`/api/notes/user/${accessCode.value}?privateCode=${unlockCode}`);
-                const notes = await response.json();
-                
-                if (notes.length > 0 && !notes[0].isLocked) {
-                    noteContent.value = notes[0].content;
-                    noteContent.classList.remove('blur-content');
-                    contentWrapper.querySelector('.private-overlay').remove();
-                    privateCode.value = unlockCode;
-                    showStatus('Note unlocked successfully');
-                } else {
-                    showStatus('Invalid private code', true);
-                }
-            } catch (error) {
-                showStatus('Failed to unlock note', true);
-            }
-        }
-
-        // Show private code input when toggle is checked
-        privateToggle.addEventListener('change', () => {
-            privateCodeInput.classList.toggle('show', privateToggle.checked);
-        });
 
         // Event listeners
         openBtn.addEventListener('click', () => {
@@ -549,12 +592,16 @@
             await saveNote();
             showStatus('Saved successfully');
             setTimeout(() => {
+                isPrivate = false;
+                currentPrivateCode = '';
                 accessContainer.style.display = 'block';
                 editorContainer.style.display = 'none';
             }, 1000);
         });
 
         closeBtn.addEventListener('click', () => {
+            isPrivate = false;
+            currentPrivateCode = '';
             accessContainer.style.display = 'block';
             editorContainer.style.display = 'none';
         });
