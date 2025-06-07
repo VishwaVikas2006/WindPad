@@ -208,7 +208,7 @@ async function uploadFile(file) {
 
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('accessCode', currentAccessCode);
+    formData.append('userId', currentAccessCode);
 
     try {
         showMessage(`Uploading ${file.name}...`, 'info');
