@@ -54,6 +54,9 @@ class GridFsStorageEngine {
         uploadStream.on('finish', (uploadedFile) => {
             // The 'uploadedFile' object here is the GridFS file document
             // We need to return the information Multer expects in req.file
+            if (!uploadedFile) {
+                return cb(new Error('File upload to GridFS failed: uploaded file object is undefined or null.'));
+            }
             cb(null, {
                 filename: uploadedFile.filename,
                 originalname: file.originalname,
