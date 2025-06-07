@@ -48,7 +48,22 @@ class GridFsStorageEngine {
         file.stream.pipe(uploadStream);
 
         uploadStream.on('error', (err) => {
+            console.error('GridFS uploadStream error:', err);
             cb(err);
+        });
+
+        uploadStream.on('close', () => {
+            console.log('GridFS uploadStream closed.');
+        });
+
+        file.stream.on('data', (chunk) => {
+            console.log(`Received ${chunk.length} bytes from file.stream`);
+        });
+        file.stream.on('end', () => {
+            console.log('file.stream ended.');
+        });
+        file.stream.on('error', (err) => {
+            console.error('file.stream error:', err);
         });
 
         uploadStream.on('finish', (uploadedFile) => {
