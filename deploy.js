@@ -344,11 +344,12 @@ connectDB().then(() => {
                     userId: file.userId,
                     isPrivate: file.isPrivate,
                     isLocked: isLocked,
-                    savedBy: file.savedBy
+                    savedBy: file.savedBy,
+                    privateCode: isLocked ? undefined : file.privateCode
                 };
             });
 
-            res.json(processedFiles || []);
+            res.json(processedFiles);
         } catch (error) {
             console.error('Error fetching files:', error);
             res.status(500).json({ message: 'Error fetching files' });
@@ -389,17 +390,14 @@ connectDB().then(() => {
     app.get('/api/download/:fileId', async (req, res) => {
         try {
             const { privateCode } = req.query;
-            const file = await File.findOne({ fileId: new mongoose.Types.ObjectId(req.params.fileId) });
+            const file = await File.findOne({ fileId: req.params.fileId });
             
             if (!file) {
                 return res.status(404).json({ message: 'File not found' });
             }
 
-            // Strict private access check
-            if (file.isPrivate) {
-                if (!privateCode || file.privateCode !== privateCode) {
-                    return res.status(403).json({ message: 'Private access code required or invalid code provided' });
-                }
+            if (file.isPrivate && (!privateCode || file.privateCode !== privateCode)) {
+                return res.status(403).json({ message: 'Private access code required' });
             }
 
             const gfs = getGfs();
@@ -420,19 +418,18 @@ connectDB().then(() => {
     app.delete('/api/delete/:fileId', async (req, res) => {
         try {
             const { privateCode } = req.body;
-            const file = await File.findOne({ fileId: new mongoose.Types.ObjectId(req.params.fileId) });
+            const file = await File.findOne({ fileId: req.params.fileId });
             
             if (!file) {
                 return res.status(404).json({ message: 'File not found' });
             }
 
-            // Only allow file owner to delete and check private access
             if (file.userId !== req.body.userId) {
                 return res.status(403).json({ message: 'Not authorized to delete this file' });
             }
 
             if (file.isPrivate && (!privateCode || file.privateCode !== privateCode)) {
-                return res.status(403).json({ message: 'Private access code required to delete this file' });
+                return res.status(403).json({ message: 'Private access code required' });
             }
 
             const gfs = getGfs();
@@ -479,13 +476,13 @@ connectDB().then(() => {
     });
 
     // New API Route for Getting Notes by User
-    app.get('/api/notes/user/:userId', async (req, res, next) => {
+    app.get('/api/notes/user/:userId', async (req, res) => {
         try {
             const { userId } = req.params;
             const { privateCode } = req.query;
 
             if (!userId) {
-                return res.status(400).json({ message: 'User ID is required to fetch notes.' });
+                return res.status(400).json({ message: 'User ID is required' });
             }
 
             const notes = await Note.find({ userId: userId }).sort({ createdAt: -1 });
@@ -499,14 +496,15 @@ connectDB().then(() => {
                     content: isLocked ? null : note.content,
                     isPrivate: note.isPrivate,
                     isLocked: isLocked,
-                    createdAt: note.createdAt
+                    createdAt: note.createdAt,
+                    privateCode: isLocked ? undefined : note.privateCode
                 };
             });
 
             res.status(200).json(processedNotes);
         } catch (error) {
             console.error('Error fetching notes:', error);
-            next(new Error('Failed to fetch notes: ' + error.message));
+            res.status(500).json({ message: 'Failed to fetch notes' });
         }
     });
 

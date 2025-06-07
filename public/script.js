@@ -10,11 +10,34 @@ function clearContent() {
     document.getElementById('saveAsPrivate').checked = false;
 }
 
+function setTextBoxState(isPrivate, hasPrivateCode) {
+    const noteInput = document.getElementById('noteInput');
+    const noteTitle = document.getElementById('noteTitle');
+    
+    if (isPrivate && !hasPrivateCode) {
+        noteInput.classList.add('blurred');
+        noteTitle.classList.add('blurred');
+        noteInput.readOnly = true;
+        noteTitle.readOnly = true;
+        noteInput.style.pointerEvents = 'none';
+        noteTitle.style.pointerEvents = 'none';
+    } else {
+        noteInput.classList.remove('blurred');
+        noteTitle.classList.remove('blurred');
+        noteInput.readOnly = false;
+        noteTitle.readOnly = false;
+        noteInput.style.pointerEvents = 'auto';
+        noteTitle.style.pointerEvents = 'auto';
+    }
+}
+
 function displayNotes(notes, hasPrivateCode = false) {
     const container = document.getElementById('notesContainer');
     container.innerHTML = '';
+    let hasPrivateNotes = false;
     
     notes.forEach(note => {
+        if (note.isPrivate) hasPrivateNotes = true;
         const noteElement = document.createElement('div');
         noteElement.className = 'note';
         
@@ -31,19 +54,8 @@ function displayNotes(notes, hasPrivateCode = false) {
             lockIcon.className = 'lock-icon';
             lockIcon.innerHTML = '🔒';
             titleElement.appendChild(lockIcon);
-            
-            // Make text boxes non-editable for private content
-            document.getElementById('noteInput').readOnly = true;
-            document.getElementById('noteTitle').readOnly = true;
-            document.getElementById('noteInput').style.pointerEvents = 'none';
-            document.getElementById('noteTitle').style.pointerEvents = 'none';
         } else {
             contentElement.textContent = note.content;
-            // Make text boxes editable for non-private content
-            document.getElementById('noteInput').readOnly = false;
-            document.getElementById('noteTitle').readOnly = false;
-            document.getElementById('noteInput').style.pointerEvents = 'auto';
-            document.getElementById('noteTitle').style.pointerEvents = 'auto';
         }
         
         const dateElement = document.createElement('small');
@@ -54,6 +66,8 @@ function displayNotes(notes, hasPrivateCode = false) {
         noteElement.appendChild(dateElement);
         container.appendChild(noteElement);
     });
+
+    setTextBoxState(hasPrivateNotes, hasPrivateCode);
 }
 
 function displayFiles(files, hasPrivateCode = false) {
@@ -78,7 +92,7 @@ function displayFiles(files, hasPrivateCode = false) {
         
         const downloadButton = document.createElement('button');
         downloadButton.textContent = 'Download';
-        downloadButton.onclick = () => downloadFile(file.fileId);
+        downloadButton.onclick = () => downloadFile(file.fileId, file.privateCode);
         if (file.isLocked) {
             downloadButton.disabled = true;
             downloadButton.title = 'Enter private code to download';
@@ -87,7 +101,7 @@ function displayFiles(files, hasPrivateCode = false) {
         const deleteButton = document.createElement('button');
         deleteButton.textContent = 'Delete';
         deleteButton.className = 'delete-btn';
-        deleteButton.onclick = () => deleteFile(file.fileId);
+        deleteButton.onclick = () => deleteFile(file.fileId, file.privateCode);
         if (file.isLocked) {
             deleteButton.disabled = true;
             deleteButton.title = 'Enter private code to delete';
@@ -101,6 +115,55 @@ function displayFiles(files, hasPrivateCode = false) {
         
         container.appendChild(fileElement);
     });
+}
+
+async function downloadFile(fileId, privateCode = '') {
+    try {
+        const response = await fetch(`/api/download/${fileId}?privateCode=${privateCode || currentPrivateCode}`);
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = '';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+        } else {
+            const error = await response.json();
+            showMessage(error.message || 'Error downloading file', 'error');
+        }
+    } catch (error) {
+        console.error('Download error:', error);
+        showMessage('Error downloading file', 'error');
+    }
+}
+
+async function deleteFile(fileId, privateCode = '') {
+    try {
+        const response = await fetch(`/api/delete/${fileId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                userId: currentUserId,
+                privateCode: privateCode || currentPrivateCode
+            })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to delete file');
+        }
+
+        await fetchUserContent(currentUserId, currentPrivateCode);
+        showMessage('File deleted successfully', 'success');
+    } catch (error) {
+        console.error('Delete error:', error);
+        showMessage(error.message || 'Error deleting file', 'error');
+    }
 }
 
 async function fetchUserContent(userId, privateCode = '') {
@@ -131,55 +194,6 @@ async function fetchUserContent(userId, privateCode = '') {
     }
 }
 
-async function downloadFile(fileId) {
-    try {
-        const response = await fetch(`/api/download/${fileId}?privateCode=${currentPrivateCode}`);
-        if (response.ok) {
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = '';
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            a.remove();
-        } else {
-            const error = await response.json();
-            showMessage(error.message || 'Error downloading file', 'error');
-        }
-    } catch (error) {
-        console.error('Download error:', error);
-        showMessage('Error downloading file', 'error');
-    }
-}
-
-async function deleteFile(fileId) {
-    try {
-        const response = await fetch(`/api/delete/${fileId}`, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                userId: currentUserId,
-                privateCode: currentPrivateCode
-            })
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || 'Failed to delete file');
-        }
-
-        await fetchUserContent(currentUserId, currentPrivateCode);
-        showMessage('File deleted successfully', 'success');
-    } catch (error) {
-        console.error('Delete error:', error);
-        showMessage(error.message || 'Error deleting file', 'error');
-    }
-}
-
 // Update file upload to handle private files
 document.getElementById('fileForm').onsubmit = async function(e) {
     e.preventDefault();
@@ -201,7 +215,8 @@ document.getElementById('fileForm').onsubmit = async function(e) {
         });
         
         if (!response.ok) {
-            throw new Error('Upload failed');
+            const error = await response.json();
+            throw new Error(error.message || 'Upload failed');
         }
         
         showMessage('File uploaded successfully!', 'success');
@@ -210,7 +225,7 @@ document.getElementById('fileForm').onsubmit = async function(e) {
         }, 1000);
     } catch (error) {
         console.error('Upload error:', error);
-        showMessage('Error uploading file', 'error');
+        showMessage(error.message || 'Error uploading file', 'error');
     }
 };
 
@@ -280,7 +295,7 @@ document.getElementById('accessButton').addEventListener('click', async () => {
     await fetchUserContent(userId, privateCodeInput);
 });
 
-// Add minimal styles for functionality
+// Add styles for blurred content and interaction prevention
 const style = document.createElement('style');
 style.textContent = `
     .blurred {
