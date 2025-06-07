@@ -34,7 +34,7 @@ class GridFsStorageEngine {
         this.options = options;
     }
 
-    _handleFile(req, file, cb) {
+    async _handleFile(req, file, cb) {
         console.log('Inside _handleFile. Database connection state (this.connection.readyState):', this.connection.readyState);
         if (this.connection.readyState !== 1) {
             console.error('Database not connected when _handleFile called. ReadyState:', this.connection.readyState);
@@ -62,7 +62,7 @@ class GridFsStorageEngine {
         file.stream.pipe(uploadStream);
 
         uploadStream.on('error', (err) => {
-            console.error('GridFS uploadStream error:', err);
+            console.error('!!! GridFS uploadStream FATAL ERROR !!!:', err);
             cb(err);
         });
 
@@ -70,44 +70,78 @@ class GridFsStorageEngine {
             console.log('GridFS uploadStream closed.');
         });
 
+        uploadStream.on('drain', () => {
+            console.log('GridFS uploadStream drained (ready for more data).');
+        });
+
         file.stream.on('data', (chunk) => {
-            console.log(`Received ${chunk.length} bytes from file.stream`);
+            // console.log(`Received ${chunk.length} bytes from file.stream`); // Keep this less verbose now, focus on uploadStream events
         });
         file.stream.on('end', () => {
             console.log('file.stream ended.');
         });
         file.stream.on('error', (err) => {
-            console.error('file.stream error:', err);
+            console.error('file.stream error (source stream):', err);
         });
 
-        uploadStream.on('finish', (uploadedFile) => {
-            console.log('GridFS uploadStream finished. uploadedFile:', uploadedFile);
-            // The 'uploadedFile' object here is the GridFS file document
-            // We need to return the information Multer expects in req.file
+        uploadStream.on('finish', async (uploadedFile) => {
+            console.log('GridFS uploadStream finished. uploadedFile (from event):', uploadedFile);
+            console.log('GridFS uploadStream ID at finish:', uploadStream.id);
+            console.log('uploadStream.writableEnded:', uploadStream.writableEnded);
+            console.log('uploadStream.writableFinished:', uploadStream.writableFinished);
+
             if (!uploadedFile) {
                 console.error('CRITICAL: uploadedFile is undefined/null in finish event for file:', file.originalname, 'Stream ID:', uploadStream.id);
-                // Attempt to find the file manually after finish event
-                bucket.find({ _id: uploadStream.id }).toArray((err, files) => {
-                    if (err) {
-                        console.error('Error trying to find file by ID after failed upload:', err);
-                    } else if (files && files.length > 0) {
-                        console.log('Found file in fs.files collection after finish, but it was undefined in event:', files[0]);
-                    } else {
-                        console.log('File not found in fs.files collection after finish event, and it was undefined.');
-                        // Also check fs.chunks collection
-                        this.connection.db.collection('uploads.chunks').find({ files_id: uploadStream.id }).toArray((chunkErr, chunks) => {
-                            if (chunkErr) {
-                                console.error('Error trying to find chunks by files_id after failed upload:', chunkErr);
-                            } else if (chunks && chunks.length > 0) {
-                                console.log(`Found ${chunks.length} chunks for file ID ${uploadStream.id} in uploads.chunks collection.`);
+
+                // Attempt to find the file after a short delay, to rule out timing issues
+                setTimeout(async () => {
+                    try {
+                        console.log('DELAYED CHECK: Attempting to find file in fs.files collection using stream ID:', uploadStream.id);
+                        const files = await bucket.find({ _id: uploadStream.id }).toArray();
+                        if (files && files.length > 0) {
+                            console.log('SUCCESS: Found file in fs.files collection after DELAYED finish event:', files[0]);
+                            // If found, it means the file was persisted, but not returned by the finish event
+                            // We can now use this \'files[0]' as \'uploadedFile\'
+                            uploadedFile = files[0]; // Assign the found file to uploadedFile
+                            // Call original callback with the found file
+                            cb(null, {
+                                filename: uploadedFile.filename,
+                                originalname: file.originalname,
+                                mimetype: uploadedFile.contentType,
+                                size: uploadedFile.length,
+                                id: uploadedFile._id, // This is the ObjectId from GridFS
+                                bucketName: this.bucketName,
+                                uploadDate: uploadedFile.uploadDate,
+                                metadata: uploadedFile.metadata
+                            });
+                        } else {
+                            console.log('DELAYED CHECK: File NOT found in fs.files collection. Stream ID:', uploadStream.id, 'Attempting to find chunks...');
+                            const chunks = await this.connection.db.collection('uploads.chunks').find({ files_id: uploadStream.id }).toArray();
+                            if (chunks && chunks.length > 0) {
+                                console.log(`DELAYED CHECK: Found ${chunks.length} chunks for file ID ${uploadStream.id} in uploads.chunks collection. File document might be missing.`);
                             } else {
-                                console.log(`No chunks found for file ID ${uploadStream.id} in uploads.chunks collection.`);
+                                console.log(`DELAYED CHECK: No chunks found for file ID ${uploadStream.id} in uploads.chunks collection. This indicates a complete write failure.`);
                             }
-                        });
+                            // If still not found, then it's a genuine failure to report to Multer
+                            console.error('FINAL CRITICAL: File upload to GridFS failed: uploaded file object is undefined or null, and manual lookup (even delayed) failed.');
+                            if (!uploadStream.destroyed) { // Only abort if not already destroyed/finished
+                                uploadStream.abort(() => {
+                                    console.log('Upload stream aborted due to persistence failure.');
+                                    cb(new Error('File upload to GridFS failed: Data not persisted.'));
+                                });
+                            } else {
+                                cb(new Error('File upload to GridFS failed: Data not persisted (stream already handled/destroyed).'));
+                            }
+                        }
+                    } catch (queryErr) {
+                        console.error('ERROR during DELAYED manual file/chunk query after failed upload:', queryErr);
+                        cb(new Error('File upload to GridFS failed due to query error after stream finish.'));
                     }
-                });
-                return cb(new Error('File upload to GridFS failed: uploaded file object is undefined or null.'));
+                }, 500); // 500ms delay
+                return; // Exit early to avoid calling cb twice or with undefined uploadedFile
             }
+
+            // If we have uploadedFile from the event, proceed normally
             cb(null, {
                 filename: uploadedFile.filename,
                 originalname: file.originalname,
