@@ -10,34 +10,11 @@ function clearContent() {
     document.getElementById('saveAsPrivate').checked = false;
 }
 
-function setTextBoxState(isPrivate, hasPrivateCode) {
-    const noteInput = document.getElementById('noteInput');
-    const noteTitle = document.getElementById('noteTitle');
-    
-    if (isPrivate && !hasPrivateCode) {
-        noteInput.classList.add('blurred');
-        noteTitle.classList.add('blurred');
-        noteInput.readOnly = true;
-        noteTitle.readOnly = true;
-        noteInput.style.pointerEvents = 'none';
-        noteTitle.style.pointerEvents = 'none';
-    } else {
-        noteInput.classList.remove('blurred');
-        noteTitle.classList.remove('blurred');
-        noteInput.readOnly = false;
-        noteTitle.readOnly = false;
-        noteInput.style.pointerEvents = 'auto';
-        noteTitle.style.pointerEvents = 'auto';
-    }
-}
-
 function displayNotes(notes, hasPrivateCode = false) {
     const container = document.getElementById('notesContainer');
     container.innerHTML = '';
-    let hasPrivateNotes = false;
     
     notes.forEach(note => {
-        if (note.isPrivate) hasPrivateNotes = true;
         const noteElement = document.createElement('div');
         noteElement.className = 'note';
         
@@ -54,8 +31,19 @@ function displayNotes(notes, hasPrivateCode = false) {
             lockIcon.className = 'lock-icon';
             lockIcon.innerHTML = '🔒';
             titleElement.appendChild(lockIcon);
+            
+            // Make text boxes non-editable for private content
+            document.getElementById('noteInput').readOnly = true;
+            document.getElementById('noteTitle').readOnly = true;
+            document.getElementById('noteInput').style.pointerEvents = 'none';
+            document.getElementById('noteTitle').style.pointerEvents = 'none';
         } else {
             contentElement.textContent = note.content;
+            // Make text boxes editable for non-private content
+            document.getElementById('noteInput').readOnly = false;
+            document.getElementById('noteTitle').readOnly = false;
+            document.getElementById('noteInput').style.pointerEvents = 'auto';
+            document.getElementById('noteTitle').style.pointerEvents = 'auto';
         }
         
         const dateElement = document.createElement('small');
@@ -66,8 +54,6 @@ function displayNotes(notes, hasPrivateCode = false) {
         noteElement.appendChild(dateElement);
         container.appendChild(noteElement);
     });
-
-    setTextBoxState(hasPrivateNotes, hasPrivateCode);
 }
 
 function displayFiles(files, hasPrivateCode = false) {
@@ -294,7 +280,7 @@ document.getElementById('accessButton').addEventListener('click', async () => {
     await fetchUserContent(userId, privateCodeInput);
 });
 
-// Add styles for the new layout and interaction prevention
+// Add minimal styles for functionality
 const style = document.createElement('style');
 style.textContent = `
     .blurred {
@@ -306,48 +292,9 @@ style.textContent = `
         margin-left: 8px;
         font-size: 16px;
     }
-    .file-name {
-        display: inline-block;
-        margin-right: 10px;
-    }
     button:disabled {
         opacity: 0.6;
         cursor: not-allowed;
-    }
-    .button-container {
-        display: flex;
-        gap: 10px;
-        justify-content: center;
-        margin: 10px 0;
-        padding: 10px;
-        background: #f5f5f5;
-        border-radius: 5px;
-    }
-    .button-container button {
-        padding: 8px 16px;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-    .button-container button:hover {
-        opacity: 0.9;
-    }
-    .button-container .save-btn {
-        background: #e0e0e0;
-    }
-    .button-container .refresh-btn {
-        background: #e0e0e0;
-    }
-    .button-container .private-btn {
-        background: #e0e0e0;
-    }
-    .button-container .save-close-btn {
-        background: #2196f3;
-        color: white;
-    }
-    .button-container .close-btn {
-        background: #e0e0e0;
     }
 `;
 document.head.appendChild(style);
