@@ -1,20 +1,18 @@
 services:
   - type: web
-    name: globalpad
+    name: GlobalPad
     env: node
+    region: ohio
+    plan: free
     buildCommand: npm install
     startCommand: node deploy.js
     envVars:
       - key: NODE_ENV
         value: production
       - key: MONGODB_URI
-        sync: false
-    disk:
-      name: uploads
-      mountPath: /opt/render/project/src/uploads
-      sizeGB: 1
-    region: ohio
-    plan: free
+        value: mongodb+srv://vishwavikas4444:Vishwa@cluster0.lrhrsuf.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+      - key: PORT
+        value: "3000"
     healthCheckPath: /
     healthCheckTimeout: 100
     autoDeploy: true

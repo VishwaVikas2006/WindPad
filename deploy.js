@@ -7,16 +7,13 @@ const multer = require('multer');
 const { GridFSBucket } = require('mongodb'); // Import GridFSBucket directly
 const { connectDB, getGfs } = require('./config/db');
 require('dotenv').config();
-const fs = require('fs');
-const crypto = require('crypto');
-const bodyParser = require('body-parser');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json());
 app.use(express.static('public'));
 
 // Cache control middleware
@@ -28,12 +25,6 @@ const nocache = (req, res, next) => {
 };
 
 app.use(nocache);
-
-// Create uploads directory if it doesn't exist
-const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-}
 
 // Custom Multer GridFS Storage Engine
 class GridFsStorageEngine {
@@ -224,11 +215,11 @@ connectDB().then(() => {
             type: String,
             required: true
         },
-        isPadLocked: {
+        isPrivate: {
             type: Boolean,
             default: false
         },
-        padLockCode: {
+        privateCode: {
             type: String,
             default: null
         },
@@ -249,222 +240,322 @@ connectDB().then(() => {
 
     // Note Schema
     const noteSchema = new mongoose.Schema({
-        accessCode: { 
-            type: String, 
-            required: true, 
-            unique: true,
-            trim: true 
+        userId: {
+            type: String,
+            required: true
+        },
+        title: {
+            type: String,
+            default: 'Untitled Note'
         },
         content: {
             type: String,
-            default: ''
+            required: true
         },
-        isLocked: { 
-            type: Boolean, 
-            default: false 
+        isPrivate: {
+            type: Boolean,
+            default: false
         },
-        padLockCode: String,
-        files: [{
-            name: String,
-            originalName: String,
-            path: String,
-            size: Number,
-            uploadDate: { 
-                type: Date, 
-                default: Date.now 
-            }
-        }],
-        createdAt: { 
-            type: Date, 
-            default: Date.now 
+        privateCode: {
+            type: String,
+            default: null
         },
-        updatedAt: { 
-            type: Date, 
-            default: Date.now 
+        createdAt: {
+            type: Date,
+            default: Date.now
         }
-    });
-
-    // Update the updatedAt timestamp before saving
-    noteSchema.pre('save', function(next) {
-        this.updatedAt = new Date();
-        next();
     });
 
     const Note = mongoose.model('Note', noteSchema);
 
     // API Routes
-    app.post('/api/notes', async (req, res) => {
-        try {
-            const { accessCode, content, isLocked, padLockCode } = req.body;
-            
-            if (!accessCode) {
-                return res.status(400).json({ error: 'Access code is required' });
-            }
-
-            let note = await Note.findOne({ accessCode: accessCode.trim() });
-            
-            if (note) {
-                note.content = content || '';
-                note.isLocked = isLocked || false;
-                if (isLocked) {
-                    note.padLockCode = padLockCode;
-                } else {
-                    note.padLockCode = undefined;
-                }
-            } else {
-                note = new Note({
-                    accessCode: accessCode.trim(),
-                    content: content || '',
-                    isLocked: isLocked || false,
-                    padLockCode: isLocked ? padLockCode : undefined
-                });
-            }
-            
-            await note.save();
-            res.json({ 
-                success: true,
-                message: 'Note saved successfully'
-            });
-        } catch (error) {
-            console.error('Error saving note:', error);
-            res.status(500).json({ error: 'Failed to save note' });
-        }
-    });
-
-    app.get('/api/notes/:accessCode', async (req, res) => {
-        try {
-            const note = await Note.findOne({ accessCode: req.params.accessCode.trim() });
-            if (!note) {
-                return res.json({ 
-                    content: '', 
-                    isLocked: false,
-                    files: []
-                });
-            }
-            res.json({
-                content: note.content,
-                isLocked: note.isLocked,
-                padLockCode: note.padLockCode,
-                files: note.files.map(file => ({
-                    name: file.name,
-                    originalName: file.originalName,
-                    uploadDate: file.uploadDate
-                }))
-            });
-        } catch (error) {
-            console.error('Error loading note:', error);
-            res.status(500).json({ error: 'Failed to load note' });
-        }
-    });
-
     app.post('/api/upload', upload.single('file'), async (req, res) => {
         try {
             if (!req.file) {
-                return res.status(400).json({ error: 'No file uploaded' });
+                return res.status(400).json({ message: 'No file uploaded' });
             }
 
-            const { accessCode } = req.body;
-            if (!accessCode) {
-                // Clean up the uploaded file
-                fs.unlink(req.file.path, () => {});
-                return res.status(400).json({ error: 'Access code is required' });
+            const { userId } = req.body;
+            if (!userId) {
+                return res.status(400).json({ message: 'User ID is required' });
             }
 
-            let note = await Note.findOne({ accessCode: accessCode.trim() });
-            if (!note) {
-                note = new Note({ accessCode: accessCode.trim() });
+            const isPrivate = req.body.isPrivate === 'true';
+            const privateCode = req.body.privateCode;
+
+            if (isPrivate && !privateCode) {
+                return res.status(400).json({ message: 'Private code is required for private files' });
             }
 
-            const fileInfo = {
-                name: req.file.filename,
-                originalName: req.file.originalname,
-                path: req.file.path,
-                size: req.file.size
-            };
+            const fileSize = req.file.size;
+            if (fileSize > 10 * 1024 * 1024) { // 10MB limit
+                return res.status(400).json({ message: 'File size exceeds 10MB limit' });
+            }
 
-            note.files.push(fileInfo);
-            await note.save();
+            const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.ms-powerpoint', 'image/jpeg', 'image/png', 'image/gif'];
+            if (!allowedTypes.includes(req.file.mimetype)) {
+                return res.status(400).json({ message: 'File type not supported' });
+            }
 
-            res.json({ 
-                success: true, 
-                message: 'File uploaded successfully',
-                file: {
-                    name: fileInfo.name,
-                    originalName: fileInfo.originalName
-                }
+            const file = new File({
+                filename: req.file.originalname,
+                fileId: req.file.id,
+                size: fileSize,
+                uploadDate: new Date(),
+                contentType: req.file.mimetype,
+                userId: userId,
+                isPrivate: isPrivate,
+                privateCode: privateCode
             });
+
+            await file.save();
+            res.status(200).json({ message: 'File uploaded successfully' });
         } catch (error) {
-            console.error('Error uploading file:', error);
-            // Clean up the uploaded file if there was an error
-            if (req.file) {
-                fs.unlink(req.file.path, () => {});
-            }
-            res.status(500).json({ error: 'Failed to upload file' });
+            console.error('Upload error:', error);
+            res.status(500).json({ message: 'Error uploading file' });
         }
     });
 
-    app.get('/api/files/:accessCode', async (req, res) => {
+    app.get('/api/files/user/:userId', async (req, res) => {
         try {
-            const note = await Note.findOne({ accessCode: req.params.accessCode.trim() });
-            if (!note || !note.files) {
-                return res.json([]);
+            const { userId } = req.params;
+            const { privateCode } = req.query;
+
+            if (!userId) {
+                return res.status(400).json({ message: 'User ID is required' });
             }
-            
-            // Only send necessary file information
-            const files = note.files.map(file => ({
-                name: file.name,
-                originalName: file.originalName,
-                uploadDate: file.uploadDate
-            }));
-            
-            res.json(files);
+
+            const files = await File.find({
+                $or: [
+                    { userId: userId },
+                    { 'savedBy.userId': userId }
+                ]
+            });
+
+            const processedFiles = files.map(file => {
+                const isLocked = file.isPrivate && (!privateCode || file.privateCode !== privateCode);
+                return {
+                    _id: file._id,
+                    filename: file.filename,
+                    fileId: file.fileId,
+                    size: file.size,
+                    uploadDate: file.uploadDate,
+                    contentType: file.contentType,
+                    userId: file.userId,
+                    isPrivate: file.isPrivate,
+                    isLocked: isLocked,
+                    savedBy: file.savedBy,
+                    privateCode: isLocked ? undefined : file.privateCode
+                };
+            });
+
+            res.json(processedFiles);
         } catch (error) {
-            console.error('Error loading files:', error);
-            res.status(500).json({ error: 'Failed to load files' });
+            console.error('Error fetching files:', error);
+            res.status(500).json({ message: 'Error fetching files' });
         }
     });
 
-    // Delete file endpoint
-    app.delete('/api/files/:accessCode/:filename', async (req, res) => {
+    app.post('/api/save/:fileId', async (req, res) => {
         try {
-            const { accessCode, filename } = req.params;
-            const note = await Note.findOne({ accessCode: accessCode.trim() });
-            
-            if (!note) {
-                return res.status(404).json({ error: 'Note not found' });
+            if (!req.body.userId) {
+                return res.status(400).json({ message: 'User ID is required' });
             }
 
-            const fileIndex = note.files.findIndex(file => file.name === filename);
-            if (fileIndex === -1) {
-                return res.status(404).json({ error: 'File not found' });
+            const file = await File.findOne({ fileId: new mongoose.Types.ObjectId(req.params.fileId) });
+            if (!file) {
+                return res.status(404).json({ message: 'File not found' });
             }
 
-            const filePath = note.files[fileIndex].path;
-            note.files.splice(fileIndex, 1);
-            await note.save();
+            // Check if user has already saved this file
+            const alreadySaved = file.savedBy.some(save => save.userId === req.body.userId);
+            if (alreadySaved) {
+                return res.status(400).json({ message: 'File already saved' });
+            }
 
-            // Delete the file from disk
-            fs.unlink(filePath, (err) => {
-                if (err) console.error('Error deleting file from disk:', err);
+            // Add user to savedBy array
+            file.savedBy.push({
+                userId: req.body.userId,
+                savedAt: new Date()
             });
 
-            res.json({ 
-                success: true, 
-                message: 'File deleted successfully' 
-            });
+            await file.save();
+            res.json({ message: 'File saved successfully' });
         } catch (error) {
-            console.error('Error deleting file:', error);
-            res.status(500).json({ error: 'Failed to delete file' });
+            console.error('Save error:', error);
+            res.status(500).json({ message: 'Error saving file' });
         }
     });
 
-    // Health check endpoint
-    app.get('/health', (req, res) => {
-        res.json({ 
-            status: 'ok', 
-            mongodb: mongoose.connection.readyState === 1,
-            uploads: fs.existsSync(uploadsDir)
-        });
+    app.get('/api/download/:fileId', async (req, res) => {
+        try {
+            const { privateCode } = req.query;
+            const file = await File.findOne({ fileId: req.params.fileId });
+            
+            if (!file) {
+                return res.status(404).json({ message: 'File not found' });
+            }
+
+            if (file.isPrivate && (!privateCode || file.privateCode !== privateCode)) {
+                return res.status(403).json({ message: 'Private access code required' });
+            }
+
+            const gfs = getGfs();
+            if (!gfs) {
+                return res.status(500).json({ message: 'File system not initialized' });
+            }
+
+            const downloadStream = gfs.openDownloadStream(new mongoose.Types.ObjectId(file.fileId));
+            res.set('Content-Type', file.contentType);
+            res.set('Content-Disposition', `attachment; filename="${file.filename}"`);
+            downloadStream.pipe(res);
+        } catch (error) {
+            console.error('Download error:', error);
+            res.status(500).json({ message: 'Error downloading file' });
+        }
+    });
+
+    app.delete('/api/delete/:fileId', async (req, res) => {
+        try {
+            const { privateCode } = req.body;
+            const file = await File.findOne({ fileId: req.params.fileId });
+            
+            if (!file) {
+                return res.status(404).json({ message: 'File not found' });
+            }
+
+            if (file.userId !== req.body.userId) {
+                return res.status(403).json({ message: 'Not authorized to delete this file' });
+            }
+
+            if (file.isPrivate && (!privateCode || file.privateCode !== privateCode)) {
+                return res.status(403).json({ message: 'Private access code required' });
+            }
+
+            const gfs = getGfs();
+            if (!gfs) {
+                return res.status(500).json({ message: 'File system not initialized' });
+            }
+
+            await gfs.delete(new mongoose.Types.ObjectId(file.fileId));
+            await File.deleteOne({ _id: file._id });
+            res.json({ message: 'File deleted successfully' });
+        } catch (error) {
+            console.error('Delete error:', error);
+            res.status(500).json({ message: 'Error deleting file' });
+        }
+    });
+
+    // New API Route for Saving Notes
+    app.post('/api/note', async (req, res, next) => {
+        try {
+            const { userId, content, title, isPrivate, privateCode } = req.body;
+
+            if (!userId || !content) {
+                return res.status(400).json({ message: 'User ID and content are required to save a note.' });
+            }
+
+            const newNote = new Note({
+                userId,
+                content,
+                title: title || 'Untitled Note',
+                isPrivate: isPrivate || false,
+                privateCode: isPrivate ? privateCode : null
+            });
+
+            await newNote.save();
+            res.status(201).json({ message: 'Note saved successfully', noteId: newNote._id });
+
+        } catch (error) {
+            console.error('Error saving note:', error);
+            if (error instanceof mongoose.Error.ValidationError) {
+                return next(error);
+            }
+            next(new Error('Failed to save note: ' + error.message));
+        }
+    });
+
+    // New API Route for Getting Notes by User
+    app.get('/api/notes/user/:userId', async (req, res) => {
+        try {
+            const { userId } = req.params;
+            const { privateCode } = req.query;
+
+            if (!userId) {
+                return res.status(400).json({ message: 'User ID is required' });
+            }
+
+            const notes = await Note.find({ userId: userId }).sort({ createdAt: -1 });
+            
+            const processedNotes = notes.map(note => {
+                const isLocked = note.isPrivate && (!privateCode || note.privateCode !== privateCode);
+                return {
+                    _id: note._id,
+                    userId: note.userId,
+                    title: note.title,
+                    content: isLocked ? null : note.content,
+                    isPrivate: note.isPrivate,
+                    isLocked: isLocked,
+                    createdAt: note.createdAt,
+                    privateCode: isLocked ? undefined : note.privateCode
+                };
+            });
+
+            res.status(200).json(processedNotes);
+        } catch (error) {
+            console.error('Error fetching notes:', error);
+            res.status(500).json({ message: 'Failed to fetch notes' });
+        }
+    });
+
+    // New API Route for Getting a Single Note
+    app.get('/api/note/:noteId', async (req, res, next) => {
+        try {
+            const { noteId } = req.params;
+            if (!noteId) {
+                return res.status(400).json({ message: 'Note ID is required.' });
+            }
+            const note = await Note.findById(noteId);
+            if (!note) {
+                return res.status(404).json({ message: 'Note not found.' });
+            }
+            res.status(200).json(note);
+        } catch (error) {
+            console.error('Error fetching single note:', error);
+            next(new Error('Failed to fetch note: ' + error.message));
+        }
+    });
+
+    // New API Route for Deleting a Note
+    app.delete('/api/note/:noteId', async (req, res, next) => {
+        try {
+            const { noteId } = req.params;
+            const { userId } = req.body; // Assuming userId is sent for authorization
+
+            if (!noteId) {
+                return res.status(400).json({ message: 'Note ID is required to delete a note.' });
+            }
+            if (!userId) {
+                return res.status(400).json({ message: 'User ID is required for authorization to delete a note.' });
+            }
+
+            const note = await Note.findById(noteId);
+            if (!note) {
+                return res.status(404).json({ message: 'Note not found.' });
+            }
+
+            // Basic authorization: ensure the note belongs to the user trying to delete it
+            if (note.userId !== userId) {
+                return res.status(403).json({ message: 'Unauthorized: This note does not belong to the provided user ID.' });
+            }
+
+            await Note.findByIdAndDelete(noteId);
+            res.status(200).json({ message: 'Note deleted successfully' });
+
+        } catch (error) {
+            console.error('Error deleting note:', error);
+            next(new Error('Failed to delete note: ' + error.message));
+        }
     });
 
     // Start server after all setup
