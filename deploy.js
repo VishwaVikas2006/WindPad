@@ -52,7 +52,7 @@ class GridFsStorageEngine {
                     uploadedAt: new Date()
                 }
             });
-            console.log('GridFS upload stream opened successfully.', uploadStream.id);
+            console.log('GridFS upload stream opened successfully. Stream ID:', uploadStream.id);
         } catch (err) {
             console.error('Error opening GridFS upload stream:', err);
             return cb(err);
@@ -84,7 +84,17 @@ class GridFsStorageEngine {
             // The 'uploadedFile' object here is the GridFS file document
             // We need to return the information Multer expects in req.file
             if (!uploadedFile) {
-                console.error('CRITICAL: uploadedFile is undefined/null in finish event for file:', file.originalname);
+                console.error('CRITICAL: uploadedFile is undefined/null in finish event for file:', file.originalname, 'Stream ID:', uploadStream.id);
+                // Attempt to find the file manually after finish event
+                bucket.find({ _id: uploadStream.id }).toArray((err, files) => {
+                    if (err) {
+                        console.error('Error trying to find file by ID after failed upload:', err);
+                    } else if (files && files.length > 0) {
+                        console.log('Found file in fs.files collection after finish, but it was undefined in event:', files[0]);
+                    } else {
+                        console.log('File not found in fs.files collection after finish event, and it was undefined.');
+                    }
+                });
                 return cb(new Error('File upload to GridFS failed: uploaded file object is undefined or null.'));
             }
             cb(null, {
