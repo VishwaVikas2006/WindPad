@@ -3,7 +3,8 @@ const path = require('path');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const multer = require('multer');
-const { GridFsStorage } = require('multer-gridfs-storage');
+// const { GridFsStorage } = require('multer-gridfs-storage'); // Removed old import
+const { GridFSBucket } = require('mongodb'); // Import GridFSBucket directly
 const { connectDB, getGfs } = require('./config/db');
 require('dotenv').config();
 
@@ -25,11 +26,63 @@ const nocache = (req, res, next) => {
 
 app.use(nocache);
 
+// Custom Multer GridFS Storage Engine
+class GridFsStorageEngine {
+    constructor(options) {
+        this.db = options.db;
+        this.bucketName = options.bucketName || 'uploads';
+        this.options = options;
+    }
+
+    _handleFile(req, file, cb) {
+        const bucket = new GridFSBucket(this.db, { bucketName: this.bucketName });
+        const uploadStream = bucket.openUploadStream(file.originalname, {
+            contentType: file.mimetype,
+            metadata: {
+                userId: req.body.userId || 'anonymous',
+                originalName: file.originalname,
+                uploadedAt: new Date()
+            }
+        });
+
+        file.stream.pipe(uploadStream);
+
+        uploadStream.on('error', (err) => {
+            cb(err);
+        });
+
+        uploadStream.on('finish', (uploadedFile) => {
+            // The 'uploadedFile' object here is the GridFS file document
+            // We need to return the information Multer expects in req.file
+            cb(null, {
+                filename: uploadedFile.filename,
+                originalname: file.originalname,
+                mimetype: uploadedFile.contentType,
+                size: uploadedFile.length,
+                id: uploadedFile._id, // This is the ObjectId from GridFS
+                bucketName: this.bucketName,
+                uploadDate: uploadedFile.uploadDate,
+                metadata: uploadedFile.metadata
+            });
+        });
+    }
+
+    _removeFile(req, file, cb) {
+        const bucket = new GridFSBucket(this.db, { bucketName: this.bucketName });
+        bucket.delete(new mongoose.Types.ObjectId(file.id), (err) => {
+            if (err) {
+                return cb(err);
+            }
+            cb(null);
+        });
+    }
+}
+
 // Connect to MongoDB
 connectDB().then(() => {
     console.log('Database connected successfully');
 
-    // Update allowed file types
+    // Update allowed file types (still relevant for validation)
     const ALLOWED_FILE_TYPES = [
         'image/jpeg',
         'image/png',
@@ -40,34 +93,20 @@ connectDB().then(() => {
         'text/plain'
     ];
 
-    // GridFS Storage setup
-    const storage = new GridFsStorage({
+    // Initialize our custom GridFS storage
+    const customGridFsStorage = new GridFsStorageEngine({
         db: mongoose.connection.db,
-        file: (req, file) => {
-            return new Promise((resolve, reject) => {
-                if (!ALLOWED_FILE_TYPES.includes(file.mimetype)) {
-                    reject(new Error('Invalid file type. Only images, PDFs, DOCs, and TXT files are allowed.'));
-                    return;
-                }
-
-                const filename = `${Date.now()}-${file.originalname}`;
-                const fileInfo = {
-                    filename: filename,
-                    bucketName: 'uploads',
-                    metadata: {
-                        userId: req.body.userId || 'anonymous',
-                        contentType: file.mimetype,
-                        originalName: file.originalname,
-                        uploadedAt: new Date()
-                    }
-                };
-                resolve(fileInfo);
-            });
+        bucketName: 'uploads',
+        fileFilter: (req, file, cb) => {
+            if (!ALLOWED_FILE_TYPES.includes(file.mimetype)) {
+                return cb(new Error('Invalid file type. Only images, PDFs, DOCs, and TXT files are allowed.'), false);
+            }
+            cb(null, true);
         }
     });
 
     const upload = multer({
-        storage,
+        storage: customGridFsStorage,
         limits: {
             fileSize: 10 * 1024 * 1024 // 10MB limit
         }
@@ -135,10 +174,10 @@ connectDB().then(() => {
             }
 
             const newFile = new File({
-                filename: req.file.originalname,
+                filename: req.file.originalname, // Multer 2.x and custom storage passes originalname
                 contentType: req.file.mimetype,
                 size: req.file.size,
-                fileId: req.file.id,
+                fileId: req.file.id, // Now directly available as 'id' from our custom storage
                 userId: req.body.userId,
                 metadata: {
                     ...req.file.metadata,
@@ -250,6 +289,8 @@ connectDB().then(() => {
                 return res.status(500).json({ message: 'File system not initialized' });
             }
 
+            // Use our custom storage's _removeFile method or directly use GridFSBucket.delete
+            // Since we have file.id, we can directly delete using GridFSBucket
             await gfs.delete(new mongoose.Types.ObjectId(file.fileId));
             await File.deleteOne({ _id: file._id });
             res.json({ message: 'File deleted successfully' });
@@ -269,7 +310,7 @@ connectDB().then(() => {
 
 // Error handling middleware
 const errorHandler = (err, req, res, next) => {
-    console.error('Global error handler hit:', err); // Debugging line
+    console.error('Global error handler hit:', err);
 
     if (err instanceof multer.MulterError) {
         if (err.code === 'LIMIT_FILE_SIZE') {
