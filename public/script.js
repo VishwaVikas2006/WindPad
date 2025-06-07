@@ -1,6 +1,14 @@
 let currentPrivateCode = '';
 let currentUserId = '';
 
+function showMessage(message, type = 'success') {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${type}`;
+    messageDiv.textContent = message;
+    document.querySelector('.container').insertBefore(messageDiv, document.querySelector('.content-container'));
+    setTimeout(() => messageDiv.remove(), 3000);
+}
+
 function clearContent() {
     const container = document.getElementById('notesContainer');
     const filesContainer = document.getElementById('filesContainer');
@@ -30,6 +38,72 @@ function clearContent() {
     if (noteTitle) {
         noteTitle.value = '';
         noteTitle.disabled = true;
+    }
+}
+
+function disablePrivateContent() {
+    const noteInput = document.getElementById('noteInput');
+    const noteTitle = document.getElementById('noteTitle');
+    const fileInput = document.getElementById('fileInput');
+    const saveAsPrivate = document.getElementById('saveAsPrivate');
+    
+    // Disable all inputs
+    noteInput.disabled = true;
+    noteTitle.disabled = true;
+    fileInput.disabled = true;
+    if (saveAsPrivate) saveAsPrivate.disabled = true;
+    
+    // Add blur effect
+    noteInput.classList.add('blurred');
+    noteTitle.classList.add('blurred');
+    
+    // Set placeholder text
+    noteInput.value = 'Private content - Enter private code to view';
+    noteTitle.value = 'Private content';
+    
+    // Disable buttons
+    const buttonContainer = document.querySelector('.button-container');
+    if (buttonContainer) {
+        buttonContainer.querySelectorAll('button').forEach(button => {
+            if (button.textContent !== 'Close') {
+                button.disabled = true;
+                button.title = 'Enter private code to enable';
+            }
+        });
+    }
+}
+
+function enablePrivateContent() {
+    const noteInput = document.getElementById('noteInput');
+    const noteTitle = document.getElementById('noteTitle');
+    const fileInput = document.getElementById('fileInput');
+    const saveAsPrivate = document.getElementById('saveAsPrivate');
+    
+    // Enable all inputs
+    noteInput.disabled = false;
+    noteTitle.disabled = false;
+    fileInput.disabled = false;
+    if (saveAsPrivate) saveAsPrivate.disabled = false;
+    
+    // Remove blur effect
+    noteInput.classList.remove('blurred');
+    noteTitle.classList.remove('blurred');
+    
+    // Clear placeholder text if it's the private content message
+    if (noteInput.value === 'Private content - Enter private code to view') {
+        noteInput.value = '';
+    }
+    if (noteTitle.value === 'Private content') {
+        noteTitle.value = '';
+    }
+    
+    // Enable buttons
+    const buttonContainer = document.querySelector('.button-container');
+    if (buttonContainer) {
+        buttonContainer.querySelectorAll('button').forEach(button => {
+            button.disabled = false;
+            button.title = '';
+        });
     }
 }
 
@@ -111,82 +185,6 @@ function displayFiles(files) {
     });
 }
 
-function disablePrivateContent() {
-    const noteInput = document.getElementById('noteInput');
-    const noteTitle = document.getElementById('noteTitle');
-    const fileInput = document.getElementById('fileInput');
-    const uploadButton = document.getElementById('uploadButton');
-    const saveAsPrivate = document.getElementById('saveAsPrivate');
-    const saveNoteAsPrivate = document.getElementById('saveNoteAsPrivate');
-    
-    // Disable all inputs
-    noteInput.disabled = true;
-    noteTitle.disabled = true;
-    fileInput.disabled = true;
-    uploadButton.disabled = true;
-    saveAsPrivate.disabled = true;
-    saveNoteAsPrivate.disabled = true;
-    
-    // Add blur effect
-    noteInput.classList.add('blurred');
-    noteTitle.classList.add('blurred');
-    uploadButton.classList.add('blurred');
-    
-    // Set placeholder text
-    noteInput.value = 'Private content - Enter private code to view';
-    noteTitle.value = 'Private content';
-    
-    // Disable buttons
-    const buttonContainer = document.querySelector('.button-container');
-    if (buttonContainer) {
-        buttonContainer.querySelectorAll('button').forEach(button => {
-            if (button.textContent !== 'Close') {
-                button.disabled = true;
-                button.title = 'Enter private code to enable';
-            }
-        });
-    }
-}
-
-function enablePrivateContent() {
-    const noteInput = document.getElementById('noteInput');
-    const noteTitle = document.getElementById('noteTitle');
-    const fileInput = document.getElementById('fileInput');
-    const uploadButton = document.getElementById('uploadButton');
-    const saveAsPrivate = document.getElementById('saveAsPrivate');
-    const saveNoteAsPrivate = document.getElementById('saveNoteAsPrivate');
-    
-    // Enable all inputs
-    noteInput.disabled = false;
-    noteTitle.disabled = false;
-    fileInput.disabled = false;
-    uploadButton.disabled = false;
-    saveAsPrivate.disabled = false;
-    saveNoteAsPrivate.disabled = false;
-    
-    // Remove blur effect
-    noteInput.classList.remove('blurred');
-    noteTitle.classList.remove('blurred');
-    uploadButton.classList.remove('blurred');
-    
-    // Clear placeholder text if it's the private content message
-    if (noteInput.value === 'Private content - Enter private code to view') {
-        noteInput.value = '';
-    }
-    if (noteTitle.value === 'Private content') {
-        noteTitle.value = '';
-    }
-    
-    // Enable buttons
-    const buttonContainer = document.querySelector('.button-container');
-    if (buttonContainer) {
-        buttonContainer.querySelectorAll('button').forEach(button => {
-            button.disabled = false;
-            button.title = '';
-        });
-    }
-}
-
 async function fetchUserContent(userId, privateCode = '') {
     try {
         // Clear and disable content immediately
@@ -223,12 +221,13 @@ async function fetchUserContent(userId, privateCode = '') {
 
         displayNotes(notes);
         displayFiles(files);
+        
+        // Show content container and hide login container
+        document.getElementById('loginContainer').style.display = 'none';
+        document.getElementById('contentContainer').style.display = 'block';
     } catch (error) {
         console.error('Error fetching content:', error);
         showMessage(error.message || 'Error fetching content', 'error');
-        
-        // Clear any partial content
-        clearContent();
         
         // Show error state in containers
         const notesContainer = document.getElementById('notesContainer');
@@ -309,47 +308,96 @@ async function deleteFile(fileId) {
     }
 }
 
-// Update file upload handling
-document.getElementById('uploadButton').addEventListener('click', function() {
-    if (!this.disabled) {
-        document.getElementById('fileInput').click();
-    }
-});
-
-document.getElementById('fileForm').onsubmit = async function(e) {
-    e.preventDefault();
-    const formData = new FormData(this);
-    formData.append('userId', currentUserId);
-    
-    const isPrivate = document.getElementById('saveAsPrivate').checked;
-    if (isPrivate) {
-        const privateCode = prompt('Enter a private code for this file:');
-        if (!privateCode) return;
-        formData.append('isPrivate', 'true');
-        formData.append('privateCode', privateCode);
-    }
-    
-    try {
-        const response = await fetch('/api/upload', {
-            method: 'POST',
-            body: formData
-        });
+// Event Listeners
+document.addEventListener('DOMContentLoaded', () => {
+    // Access button click handler
+    document.getElementById('accessButton').addEventListener('click', async () => {
+        const userId = document.getElementById('userInput').value.trim();
+        const privateCodeInput = document.getElementById('privateCodeInput').value.trim();
         
-        if (!response.ok) {
-            throw new Error('Upload failed');
+        if (!userId) {
+            showMessage('Please enter a user ID', 'error');
+            return;
         }
         
-        showMessage('File uploaded successfully!', 'success');
-        setTimeout(() => {
-            fetchUserContent(currentUserId, currentPrivateCode);
-        }, 1000);
-    } catch (error) {
-        console.error('Upload error:', error);
-        showMessage('Error uploading file', 'error');
-    }
-};
+        await fetchUserContent(userId, privateCodeInput);
+    });
+    
+    // Save button click handler
+    document.querySelector('.save-btn').addEventListener('click', () => {
+        document.getElementById('noteForm').dispatchEvent(new Event('submit'));
+    });
+    
+    // Refresh button click handler
+    document.querySelector('.refresh-btn').addEventListener('click', () => {
+        fetchUserContent(currentUserId, currentPrivateCode);
+    });
+    
+    // Save as Private button click handler
+    document.querySelector('.private-btn').addEventListener('click', () => {
+        document.getElementById('saveNoteAsPrivate').checked = true;
+        document.getElementById('noteForm').dispatchEvent(new Event('submit'));
+    });
+    
+    // Save & Close button click handler
+    document.querySelector('.save-close-btn').addEventListener('click', async () => {
+        await document.getElementById('noteForm').dispatchEvent(new Event('submit'));
+        document.getElementById('loginContainer').style.display = 'block';
+        document.getElementById('contentContainer').style.display = 'none';
+        clearContent();
+    });
+    
+    // Close button click handler
+    document.querySelector('.close-btn').addEventListener('click', () => {
+        document.getElementById('loginContainer').style.display = 'block';
+        document.getElementById('contentContainer').style.display = 'none';
+        clearContent();
+    });
+    
+    // File upload handler
+    document.getElementById('fileInput').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        if (file.size > 10 * 1024 * 1024) {
+            showMessage('File size must be less than 10MB', 'error');
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('userId', currentUserId);
+        
+        const isPrivate = document.getElementById('saveAsPrivate').checked;
+        if (isPrivate) {
+            const privateCode = prompt('Enter a private code for this file:');
+            if (!privateCode) return;
+            formData.append('isPrivate', 'true');
+            formData.append('privateCode', privateCode);
+        }
+        
+        try {
+            const response = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (!response.ok) {
+                throw new Error('Upload failed');
+            }
+            
+            showMessage('File uploaded successfully!', 'success');
+            setTimeout(() => {
+                fetchUserContent(currentUserId, currentPrivateCode);
+            }, 1000);
+        } catch (error) {
+            console.error('Upload error:', error);
+            showMessage('Error uploading file', 'error');
+        }
+    });
+});
 
-// Update note saving to handle errors better
+// Note form submit handler
 document.getElementById('noteForm').onsubmit = async function(e) {
     e.preventDefault();
     const title = document.getElementById('noteTitle').value;
@@ -402,23 +450,6 @@ document.getElementById('noteForm').onsubmit = async function(e) {
         showMessage(error.message || 'Error saving note', 'error');
     }
 };
-
-// Update the access button click handler
-document.getElementById('accessButton').addEventListener('click', async () => {
-    const userId = document.getElementById('userInput').value.trim();
-    const privateCodeInput = document.getElementById('privateCodeInput').value.trim();
-    
-    if (!userId) {
-        showMessage('Please enter a user ID', 'error');
-        return;
-    }
-    
-    // Clear and disable content immediately before fetching
-    clearContent();
-    disablePrivateContent();
-    
-    await fetchUserContent(userId, privateCodeInput);
-});
 
 // Add styles for blurred content and lock icon
 const style = document.createElement('style');
