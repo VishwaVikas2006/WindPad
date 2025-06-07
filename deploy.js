@@ -115,10 +115,17 @@ connectDB().then(() => {
     const File = mongoose.model('File', fileSchema);
 
     // API Routes
-    app.post('/api/upload', upload.single('file'), async (req, res) => {
+    app.post('/api/upload', upload.single('file'), (err, req, res, next) => {
+        if (err) {
+            // This is a Multer error. Pass it to the global error handler.
+            return next(err);
+        }
+        next(); // Continue to the next middleware/route handler
+    }, async (req, res, next) => {
         try {
             if (!req.file) {
-                return res.status(400).json({ message: 'No file uploaded' });
+                // Pass this error to the global error handler
+                return next(new Error('No file uploaded'));
             }
 
             console.log('req.file after upload:', req.file); // Debugging line
@@ -141,16 +148,13 @@ connectDB().then(() => {
             });
 
             await newFile.save();
-            res.status(201).json({ 
-                message: 'File uploaded successfully', 
-                file: newFile 
+            res.status(201).json({
+                message: 'File uploaded successfully',
+                file: newFile
             });
         } catch (error) {
-            console.error('Upload error:', error);
-            if (error.name === 'ValidationError') {
-                return res.status(400).json({ message: 'Invalid file data' });
-            }
-            res.status(500).json({ message: 'Error uploading file' });
+            console.error('Error in /api/upload handler:', error); // Debugging line
+            return next(error); // Pass any caught error to the global error handler
         }
     });
 
@@ -265,19 +269,27 @@ connectDB().then(() => {
 
 // Error handling middleware
 const errorHandler = (err, req, res, next) => {
-    console.error('Error:', err);
-    
+    console.error('Global error handler hit:', err); // Debugging line
+
     if (err instanceof multer.MulterError) {
         if (err.code === 'LIMIT_FILE_SIZE') {
             return res.status(400).json({ message: 'File is too large. Maximum size is 10MB' });
         }
         return res.status(400).json({ message: err.message });
     }
-    
+
+    if (err.name === 'ValidationError') {
+        return res.status(400).json({ message: 'Invalid file data: ' + err.message });
+    }
+
     if (err.message && err.message.includes('Invalid file type')) {
         return res.status(400).json({ message: err.message });
     }
-    
+
+    if (err.message && err.message.includes('No file uploaded')) {
+        return res.status(400).json({ message: err.message });
+    }
+
     res.status(500).json({ message: 'Internal server error' });
 };
 

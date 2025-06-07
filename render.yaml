@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: file-sharing-app
+    name: GlobalPad
     env: node
     region: ohio
     plan: free
