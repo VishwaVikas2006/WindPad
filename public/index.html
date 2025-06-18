@@ -566,8 +566,18 @@
         }
 
         // Show private modal
-        privateBtn.addEventListener('click', () => {
-            privateModal.style.display = 'flex';
+        privateBtn.addEventListener('click', async () => {
+            const code = prompt('Enter a private code for this note:');
+            if (code) {
+                currentPrivateCode = code;
+                isPrivate = true;
+                await saveNote();
+                // Reset after saving
+                isPrivate = false;
+                currentPrivateCode = '';
+            } else {
+                showStatus('Private code is required for private note', true);
+            }
         });
 
         // Handle private code confirmation
@@ -624,7 +634,11 @@
             loadFiles();
         });
 
-        saveBtn.addEventListener('click', saveNote);
+        saveBtn.addEventListener('click', async () => {
+            isPrivate = false;
+            currentPrivateCode = '';
+            await saveNote();
+        });
 
         refreshBtn.addEventListener('click', () => {
             loadNote();
