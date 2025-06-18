@@ -352,6 +352,7 @@
                 <div class="file-upload">
                     <input type="file" id="file-input" accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.jpg,.jpeg,.png" style="display: none">
                     <button class="btn" id="upload-btn">Upload Files</button>
+                    <button class="btn btn-secondary" id="upload-private-btn">Upload as Private</button>
                     <p class="note">Supported files: PDF, DOC, PPT, Images (Max size: 10MB)</p>
                 </div>
                 <div class="file-list" id="file-list">
@@ -383,6 +384,7 @@
         const confirmPrivateBtn = document.getElementById('confirm-private');
         const cancelPrivateBtn = document.getElementById('cancel-private');
         const privateAccessCode = document.getElementById('private-access-code');
+        const uploadPrivateBtn = document.getElementById('upload-private-btn');
         let isPrivate = false;
         let currentPrivateCode = '';
 
@@ -604,6 +606,39 @@
             currentPrivateCode = '';
             accessContainer.style.display = 'block';
             editorContainer.style.display = 'none';
+        });
+
+        uploadPrivateBtn.addEventListener('click', async () => {
+            fileInput.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                if (file.size > 10 * 1024 * 1024) {
+                    showStatus('File size must be less than 10MB', true);
+                    return;
+                }
+                const privateCode = prompt('Enter a private code for this file:');
+                if (!privateCode) {
+                    showStatus('Private code is required for private upload', true);
+                    return;
+                }
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('userId', accessCode.value);
+                formData.append('isPrivate', 'true');
+                formData.append('privateCode', privateCode);
+                try {
+                    const response = await fetch('/api/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    if (!response.ok) throw new Error('Upload failed');
+                    showStatus('Private file uploaded successfully');
+                    loadFiles();
+                } catch (error) {
+                    showStatus('Failed to upload private file', true);
+                }
+            };
+            fileInput.click();
         });
     </script>
   </body>
