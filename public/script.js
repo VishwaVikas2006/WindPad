@@ -10,11 +10,10 @@ function clearContent() {
     document.getElementById('saveAsPrivate').checked = false;
 }
 
-function setTextBoxState(isPrivate, hasPrivateCode) {
+function setTextBoxState(isLocked) {
     const noteInput = document.getElementById('noteInput');
     const noteTitle = document.getElementById('noteTitle');
-    
-    if (isPrivate && !hasPrivateCode) {
+    if (isLocked) {
         noteInput.classList.add('blurred');
         noteTitle.classList.add('blurred');
         noteInput.readOnly = true;
@@ -31,13 +30,12 @@ function setTextBoxState(isPrivate, hasPrivateCode) {
     }
 }
 
-function displayNotes(notes, hasPrivateCode = false) {
+function displayNotes(notes) {
     const container = document.getElementById('notesContainer');
     container.innerHTML = '';
-    let hasPrivateNotes = false;
+    let anyLocked = notes.some(note => note.isLocked);
     
     notes.forEach(note => {
-        if (note.isPrivate) hasPrivateNotes = true;
         const noteElement = document.createElement('div');
         noteElement.className = 'note';
         
@@ -49,7 +47,6 @@ function displayNotes(notes, hasPrivateCode = false) {
             contentElement.classList.add('blurred');
             contentElement.textContent = 'Private content';
             contentElement.style.pointerEvents = 'none';
-            
             const lockIcon = document.createElement('span');
             lockIcon.className = 'lock-icon';
             lockIcon.innerHTML = '🔒';
@@ -67,7 +64,7 @@ function displayNotes(notes, hasPrivateCode = false) {
         container.appendChild(noteElement);
     });
 
-    setTextBoxState(hasPrivateNotes, hasPrivateCode);
+    setTextBoxState(anyLocked);
 }
 
 function displayFiles(files, hasPrivateCode = false) {
@@ -76,14 +73,17 @@ function displayFiles(files, hasPrivateCode = false) {
     
     files.forEach(file => {
         const fileElement = document.createElement('div');
-        fileElement.className = 'file';
+        fileElement.className = 'file-item';
         
+        if (file.isLocked) {
+            fileElement.classList.add('blur-content');
+        }
+
         const nameElement = document.createElement('span');
         nameElement.className = 'file-name';
         nameElement.textContent = file.filename;
         
         if (file.isLocked) {
-            fileElement.classList.add('blur-content');
             nameElement.style.pointerEvents = 'none';
             const lockIcon = document.createElement('span');
             lockIcon.className = 'lock-icon';
@@ -187,7 +187,7 @@ async function fetchUserContent(userId, privateCode = '') {
             filesResponse.json()
         ]);
 
-        displayNotes(notes, !!privateCode);
+        displayNotes(notes);
         displayFiles(files, !!privateCode);
     } catch (error) {
         console.error('Error fetching content:', error);
