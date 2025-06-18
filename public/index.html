@@ -398,12 +398,8 @@
             }, 3000);
         }
 
-        // Handle file upload
-        uploadBtn.addEventListener('click', () => {
-            fileInput.click();
-        });
-
-        fileInput.addEventListener('change', async (e) => {
+        // Save your regular handler in a variable
+        const regularFileInputHandler = async (e) => {
             const file = e.target.files[0];
             if (!file) return;
 
@@ -430,6 +426,51 @@
             } catch (error) {
                 showStatus('Failed to upload file', true);
             }
+        };
+
+        // Set the regular handler on page load
+        fileInput.onchange = regularFileInputHandler;
+
+        uploadBtn.addEventListener('click', () => {
+            fileInput.onchange = regularFileInputHandler;
+            fileInput.value = '';
+            fileInput.click();
+        });
+
+        uploadPrivateBtn.addEventListener('click', async () => {
+            fileInput.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                if (file.size > 10 * 1024 * 1024) {
+                    showStatus('File size must be less than 10MB', true);
+                    return;
+                }
+                const privateCode = prompt('Enter a private code for this file:');
+                if (!privateCode) {
+                    showStatus('Private code is required for private upload', true);
+                    return;
+                }
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('userId', accessCode.value);
+                formData.append('isPrivate', 'true');
+                formData.append('privateCode', privateCode);
+                try {
+                    const response = await fetch('/api/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    if (!response.ok) throw new Error('Upload failed');
+                    showStatus('Private file uploaded successfully');
+                    loadFiles();
+                } catch (error) {
+                    showStatus('Failed to upload private file', true);
+                }
+                // Restore the regular handler after upload
+                fileInput.onchange = regularFileInputHandler;
+            };
+            fileInput.value = '';
+            fileInput.click();
         });
 
         // Load files
@@ -606,39 +647,6 @@
             currentPrivateCode = '';
             accessContainer.style.display = 'block';
             editorContainer.style.display = 'none';
-        });
-
-        uploadPrivateBtn.addEventListener('click', async () => {
-            fileInput.onchange = async (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-                if (file.size > 10 * 1024 * 1024) {
-                    showStatus('File size must be less than 10MB', true);
-                    return;
-                }
-                const privateCode = prompt('Enter a private code for this file:');
-                if (!privateCode) {
-                    showStatus('Private code is required for private upload', true);
-                    return;
-                }
-                const formData = new FormData();
-                formData.append('file', file);
-                formData.append('userId', accessCode.value);
-                formData.append('isPrivate', 'true');
-                formData.append('privateCode', privateCode);
-                try {
-                    const response = await fetch('/api/upload', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    if (!response.ok) throw new Error('Upload failed');
-                    showStatus('Private file uploaded successfully');
-                    loadFiles();
-                } catch (error) {
-                    showStatus('Failed to upload private file', true);
-                }
-            };
-            fileInput.click();
         });
     </script>
   </body>
