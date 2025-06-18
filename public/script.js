@@ -80,15 +80,16 @@ function displayFiles(files, hasPrivateCode = false) {
         
         const nameElement = document.createElement('span');
         nameElement.className = 'file-name';
+        nameElement.textContent = file.filename;
+        
         if (file.isLocked) {
-            nameElement.classList.add('blurred');
+            fileElement.classList.add('blur-content');
             nameElement.style.pointerEvents = 'none';
             const lockIcon = document.createElement('span');
             lockIcon.className = 'lock-icon';
             lockIcon.innerHTML = '🔒';
             nameElement.appendChild(lockIcon);
         }
-        nameElement.textContent = file.filename;
         
         const downloadButton = document.createElement('button');
         downloadButton.textContent = 'Download';
