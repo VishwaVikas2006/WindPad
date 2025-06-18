@@ -490,4 +490,10 @@ footer {
     .secondary-button {
         width: 100%;
     }
+}
+
+.blur-content {
+    filter: blur(5px);
+    pointer-events: none;
+    user-select: none;
 } 
