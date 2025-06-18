@@ -545,19 +545,13 @@
                     if (note.isLocked) {
                         noteContent.value = '';
                         noteContent.classList.add('blurred-content');
-                        contentWrapper.innerHTML = `
-                            <div class="locked-overlay">
-                                <div class="locked-message">
-                                    <div class="lock-icon">🔒</div>
-                                    <p>This note is private</p>
-                                </div>
-                            </div>
-                        ` + contentWrapper.innerHTML;
+                        noteContent.readOnly = true;
+                        noteContent.placeholder = 'This note is private. Enter the private code to view.';
                     } else {
                         noteContent.value = note.content;
                         noteContent.classList.remove('blurred-content');
-                        const overlay = contentWrapper.querySelector('.locked-overlay');
-                        if (overlay) overlay.remove();
+                        noteContent.readOnly = false;
+                        noteContent.placeholder = 'Start typing your notes here...';
                     }
                 }
             } catch (error) {
