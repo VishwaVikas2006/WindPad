@@ -496,4 +496,10 @@ footer {
     filter: blur(5px);
     pointer-events: none;
     user-select: none;
+}
+
+.file-item.blur-content {
+    filter: blur(5px) !important;
+    pointer-events: none !important;
+    user-select: none !important;
 } 

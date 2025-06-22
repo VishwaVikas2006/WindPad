@@ -335,8 +335,14 @@ function setupButtonLayout() {
     privateBtn.textContent = 'Save as Private';
     privateBtn.className = 'private-btn';
     privateBtn.onclick = () => {
-        document.getElementById('saveNoteAsPrivate').checked = true;
-        document.getElementById('noteForm').dispatchEvent(new Event('submit'));
+        const code = prompt('Enter a private code for this note:');
+        if (code) {
+            currentPrivateCode = code;
+            document.getElementById('saveNoteAsPrivate').checked = true;
+            document.getElementById('noteForm').dispatchEvent(new Event('submit'));
+        } else {
+            showMessage('Private code is required for private note', true);
+        }
     };
     
     const saveCloseBtn = document.createElement('button');
@@ -369,4 +375,28 @@ function setupButtonLayout() {
 }
 
 // Call setupButtonLayout after DOM is loaded
-document.addEventListener('DOMContentLoaded', setupButtonLayout); 
+document.addEventListener('DOMContentLoaded', setupButtonLayout);
+
+async function loadNote() {
+    try {
+        const response = await fetch(`/api/notes/user/${accessCode.value}?privateCode=${privateAccessCode.value || ''}`);
+        const notes = await response.json();
+        
+        if (notes.length > 0) {
+            const note = notes[0];
+            if (note.isLocked) {
+                noteContent.value = '';
+                noteContent.classList.add('blurred-content');
+                noteContent.readOnly = true;
+                noteContent.placeholder = 'This note is private. Enter the private code to view.';
+            } else {
+                noteContent.value = note.content;
+                noteContent.classList.remove('blurred-content');
+                noteContent.readOnly = false;
+                noteContent.placeholder = 'Start typing your notes here...';
+            }
+        }
+    } catch (error) {
+        showStatus('Failed to load note', true);
+    }
+} 
